@@ -1,4 +1,4 @@
-# Todo Tree CLI
+# Todo Tree
 
 A command-line tool to find and display TODO-style comments in your codebase, similar to the VS Code "Todo Tree" extension.
 
