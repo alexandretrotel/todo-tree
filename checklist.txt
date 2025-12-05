@@ -1,0 +1,66 @@
+# Code Review Checklist
+
+## Architecture & Structure
+[ ] lib.rs - Verify the public API makes sense if someone uses this as a library
+[ ] Module visibility - Check if `pub mod` exports are appropriate (do all modules need to be public?)
+[ ] Error handling - Review use of `anyhow` and error messages for clarity
+
+## CLI (cli.rs)
+[ ] Verify all command descriptions and help text are clear
+[x] Check default values make sense
+[ ] Confirm argument short flags don't conflict (e.g., -t for tags)
+[ ] Test that --help output looks good for all commands
+
+## Configuration (config.rs)
+[x] Review config file search order logic
+[ ] Check JSON/YAML parsing edge cases
+[ ] Verify merge behavior (CLI options should override config file)
+[ ] Test with malformed config files
+
+## Parser (parser.rs)
+[ ] Review the regex pattern - does it catch edge cases?
+[ ] Test with unusual comment formats (multi-line, nested, etc.)
+[ ] Verify case-insensitive matching works correctly
+[ ] Check author extraction TODO(name): works reliably
+[ ] Test with tags inside strings/code (false positives?)
+
+## Scanner (scanner.rs)
+[ ] Verify .gitignore is properly respected
+[ ] Test --include and --exclude pattern behavior
+[ ] Check behavior with symlinks, binary files, permission errors
+[ ] Review the unused scan_parallel - keep or remove?
+[ ] Test --depth limiting
+
+## Printer (printer.rs)
+[ ] Review tree formatting appearance
+[ ] Test JSON output is valid and well-structured
+[ ] Verify clickable links work in your terminal
+[ ] Check colored output looks good / priority colors make sense
+[ ] Test --no-color flag
+
+## Tests
+[ ] Review test coverage - any missing scenarios?
+[ ] Check tests are actually testing the right things (not just passing)
+[ ] Consider adding integration tests with assert_cmd
+[ ] Test edge cases: empty directories, no matches, huge files
+
+## Documentation
+[ ] README examples are accurate and work
+[ ] Doc comments on public items are helpful
+[ ] Example config files are valid
+
+## Cleanup
+[ ] Review all #[allow(dead_code)] - keep these functions or remove them?
+[ ] Check for any TODO/FIXME comments in the code itself (meta!)
+[ ] Remove unused dependencies from Cargo.toml if any
+
+## Final Validation
+[ ] Run `cargo clippy` - still clean?
+[ ] Run `cargo test` - all passing?
+[ ] Run `cargo build --release` - builds without warnings?
+[ ] Try the tool on a real project
+
+Reset git repository and push to GitHub:
+git init
+git add .
+git commit -m "Initial commit"

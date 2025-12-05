@@ -1,0 +1,10 @@
+{
+  "tags": ["TODO", "FIXME", "BUG", "NOTE", "HACK", "XXX", "WARN", "PERF"],
+  "include": [],
+  "exclude": ["target/**", "node_modules/**", "dist/**", ".git/**"],
+  "json": false,
+  "flat": false,
+  "no_color": false,
+  "case_sensitive": false,
+  "custom_pattern": null
+}
