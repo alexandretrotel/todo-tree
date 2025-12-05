@@ -389,4 +389,225 @@ mod tests {
         assert_eq!(list.tags, Some(vec!["TODO".to_string()]));
         assert!(list.json);
     }
+
+    #[test]
+    fn test_parse_verbose_flag() {
+        let cli = Cli::parse_from(["todo-tree", "-v", "scan"]);
+        assert!(cli.global.verbose);
+    }
+
+    #[test]
+    fn test_parse_config_path() {
+        let cli = Cli::parse_from(["todo-tree", "--config", "/path/to/config.json", "scan"]);
+        assert_eq!(
+            cli.global.config,
+            Some(PathBuf::from("/path/to/config.json"))
+        );
+    }
+
+    #[test]
+    fn test_parse_list_with_filter() {
+        let cli = Cli::parse_from(["todo-tree", "list", "--filter", "TODO"]);
+
+        match cli.command {
+            Some(Commands::List(args)) => {
+                assert_eq!(args.filter, Some("TODO".to_string()));
+            }
+            _ => panic!("Expected List command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_stats_command() {
+        let cli = Cli::parse_from(["todo-tree", "stats", "--json"]);
+
+        match cli.command {
+            Some(Commands::Stats(args)) => {
+                assert!(args.json);
+            }
+            _ => panic!("Expected Stats command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_stats_with_path() {
+        let cli = Cli::parse_from(["todo-tree", "stats", "./src"]);
+
+        match cli.command {
+            Some(Commands::Stats(args)) => {
+                assert_eq!(args.path, Some(PathBuf::from("./src")));
+            }
+            _ => panic!("Expected Stats command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_tags_add() {
+        let cli = Cli::parse_from(["todo-tree", "tags", "--add", "CUSTOM"]);
+
+        match cli.command {
+            Some(Commands::Tags(args)) => {
+                assert_eq!(args.add, Some("CUSTOM".to_string()));
+            }
+            _ => panic!("Expected Tags command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_tags_remove() {
+        let cli = Cli::parse_from(["todo-tree", "tags", "--remove", "NOTE"]);
+
+        match cli.command {
+            Some(Commands::Tags(args)) => {
+                assert_eq!(args.remove, Some("NOTE".to_string()));
+            }
+            _ => panic!("Expected Tags command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_tags_reset() {
+        let cli = Cli::parse_from(["todo-tree", "tags", "--reset"]);
+
+        match cli.command {
+            Some(Commands::Tags(args)) => {
+                assert!(args.reset);
+            }
+            _ => panic!("Expected Tags command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_scan_depth() {
+        let cli = Cli::parse_from(["todo-tree", "scan", "--depth", "3"]);
+
+        match cli.command {
+            Some(Commands::Scan(args)) => {
+                assert_eq!(args.depth, 3);
+            }
+            _ => panic!("Expected Scan command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_scan_follow_links() {
+        let cli = Cli::parse_from(["todo-tree", "scan", "--follow-links"]);
+
+        match cli.command {
+            Some(Commands::Scan(args)) => {
+                assert!(args.follow_links);
+            }
+            _ => panic!("Expected Scan command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_scan_hidden() {
+        let cli = Cli::parse_from(["todo-tree", "scan", "--hidden"]);
+
+        match cli.command {
+            Some(Commands::Scan(args)) => {
+                assert!(args.hidden);
+            }
+            _ => panic!("Expected Scan command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_scan_case_sensitive() {
+        let cli = Cli::parse_from(["todo-tree", "scan", "--case-sensitive"]);
+
+        match cli.command {
+            Some(Commands::Scan(args)) => {
+                assert!(args.case_sensitive);
+            }
+            _ => panic!("Expected Scan command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_scan_flat() {
+        let cli = Cli::parse_from(["todo-tree", "scan", "--flat"]);
+
+        match cli.command {
+            Some(Commands::Scan(args)) => {
+                assert!(args.flat);
+            }
+            _ => panic!("Expected Scan command"),
+        }
+    }
+
+    #[test]
+    fn test_sort_order_line() {
+        let cli = Cli::parse_from(["todo-tree", "scan", "--sort", "line"]);
+
+        match cli.command {
+            Some(Commands::Scan(args)) => {
+                assert_eq!(args.sort, SortOrder::Line);
+            }
+            _ => panic!("Expected Scan command"),
+        }
+    }
+
+    #[test]
+    fn test_config_format_default() {
+        assert_eq!(ConfigFormat::default(), ConfigFormat::Json);
+    }
+
+    #[test]
+    fn test_sort_order_default() {
+        assert_eq!(SortOrder::default(), SortOrder::File);
+    }
+
+    #[test]
+    fn test_scan_args_default() {
+        let args = ScanArgs::default();
+        assert!(args.path.is_none());
+        assert!(args.tags.is_none());
+        assert!(args.include.is_none());
+        assert!(args.exclude.is_none());
+        assert!(!args.json);
+        assert!(!args.flat);
+        assert_eq!(args.depth, 0);
+        assert!(!args.follow_links);
+        assert!(!args.hidden);
+        assert!(!args.case_sensitive);
+        assert_eq!(args.sort, SortOrder::File);
+    }
+
+    #[test]
+    fn test_list_args_default() {
+        let args = ListArgs::default();
+        assert!(args.path.is_none());
+        assert!(args.tags.is_none());
+        assert!(args.include.is_none());
+        assert!(args.exclude.is_none());
+        assert!(!args.json);
+        assert!(args.filter.is_none());
+        assert!(!args.case_sensitive);
+    }
+
+    #[test]
+    fn test_scan_args_to_list_args_preserves_case_sensitive() {
+        let scan = ScanArgs {
+            case_sensitive: true,
+            ..Default::default()
+        };
+
+        let list: ListArgs = scan.into();
+        assert!(list.case_sensitive);
+    }
+
+    #[test]
+    fn test_scan_args_to_list_args_preserves_include_exclude() {
+        let scan = ScanArgs {
+            include: Some(vec!["*.rs".to_string()]),
+            exclude: Some(vec!["target/**".to_string()]),
+            ..Default::default()
+        };
+
+        let list: ListArgs = scan.into();
+        assert_eq!(list.include, Some(vec!["*.rs".to_string()]));
+        assert_eq!(list.exclude, Some(vec!["target/**".to_string()]));
+    }
 }
