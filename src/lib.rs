@@ -496,4 +496,145 @@ fn temp_fix() {}
             }
         }
     }
+
+    #[test]
+    fn test_sort_by_file() {
+        let temp_dir = TempDir::new().unwrap();
+
+        fs::write(temp_dir.path().join("test.rs"), "// TODO: Test").unwrap();
+
+        let tags: Vec<String> = config::DEFAULT_TAGS.iter().map(|s| s.to_string()).collect();
+        let parser = TodoParser::new(&tags, false);
+        let scanner = Scanner::new(parser, ScanOptions::default());
+
+        let mut result = scanner.scan(temp_dir.path()).unwrap();
+        // Sort by file should not panic
+        sort_results(&mut result, SortOrder::File);
+
+        assert!(result.total_count >= 1);
+    }
+
+    #[test]
+    fn test_sort_by_line() {
+        let temp_dir = TempDir::new().unwrap();
+
+        fs::write(
+            temp_dir.path().join("test.rs"),
+            r#"
+// TODO: Line 2
+fn main() {}
+// TODO: Line 4
+// TODO: Line 5
+"#,
+        )
+        .unwrap();
+
+        let tags: Vec<String> = config::DEFAULT_TAGS.iter().map(|s| s.to_string()).collect();
+        let parser = TodoParser::new(&tags, false);
+        let scanner = Scanner::new(parser, ScanOptions::default());
+
+        let mut result = scanner.scan(temp_dir.path()).unwrap();
+        sort_results(&mut result, SortOrder::Line);
+
+        // Check that items are sorted by line number within files
+        for items in result.files.values() {
+            for window in items.windows(2) {
+                assert!(window[0].line <= window[1].line);
+            }
+        }
+    }
+
+    #[test]
+    fn test_load_config_with_explicit_path() {
+        let temp_dir = TempDir::new().unwrap();
+
+        let config_content = r#"{"tags": ["EXPLICIT"]}"#;
+        let config_path = temp_dir.path().join("custom.json");
+        fs::write(&config_path, config_content).unwrap();
+
+        let config = load_config(temp_dir.path(), Some(&config_path)).unwrap();
+        assert_eq!(config.tags, vec!["EXPLICIT"]);
+    }
+
+    #[test]
+    fn test_load_config_no_file() {
+        let temp_dir = TempDir::new().unwrap();
+
+        let config = load_config(temp_dir.path(), None).unwrap();
+        // Should return default config
+        assert!(!config.tags.is_empty());
+        assert!(config.tags.contains(&"TODO".to_string()));
+    }
+
+    #[test]
+    fn test_save_config_creates_new_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let original_dir = std::env::current_dir().unwrap();
+
+        // Change to temp directory
+        std::env::set_current_dir(temp_dir.path()).unwrap();
+
+        let config = Config::new();
+        let result = save_config(&config);
+
+        // Restore original directory
+        std::env::set_current_dir(original_dir).unwrap();
+
+        assert!(result.is_ok());
+        assert!(temp_dir.path().join(".todorc.json").exists());
+    }
+
+    #[test]
+    fn test_save_config_updates_existing() {
+        let temp_dir = TempDir::new().unwrap();
+        let original_dir = std::env::current_dir().unwrap();
+
+        // Get absolute path before changing directories
+        let temp_path = temp_dir.path().to_path_buf();
+
+        // Create existing config file
+        let existing_path = temp_path.join(".todorc.json");
+        fs::write(&existing_path, r#"{"tags": ["OLD"]}"#).unwrap();
+
+        // Change to temp directory
+        std::env::set_current_dir(&temp_path).unwrap();
+
+        let mut config = Config::new();
+        config.tags = vec!["NEW".to_string()];
+        let result = save_config(&config);
+
+        // Restore original directory
+        std::env::set_current_dir(&original_dir).unwrap();
+
+        assert!(result.is_ok());
+
+        // Verify the file was updated
+        let loaded = Config::load_from_file(&existing_path).unwrap();
+        assert_eq!(loaded.tags, vec!["NEW"]);
+    }
+
+    #[test]
+    fn test_save_config_to_yaml_file() {
+        // Test saving config directly to a YAML file (not via save_config)
+        // This avoids directory change issues in parallel tests
+        let temp_dir = TempDir::new().unwrap();
+        let yaml_path = temp_dir.path().join(".todorc.yaml");
+
+        let mut config = Config::new();
+        config.tags = vec!["YAML_TEST".to_string()];
+        config.save(&yaml_path).unwrap();
+
+        // Verify the YAML file was created and can be loaded
+        let loaded = Config::load_from_file(&yaml_path).unwrap();
+        assert_eq!(loaded.tags, vec!["YAML_TEST"]);
+    }
+
+    #[test]
+    fn test_create_test_project_structure() {
+        let temp_dir = create_test_project();
+
+        assert!(temp_dir.path().join("main.rs").exists());
+        assert!(temp_dir.path().join("lib.rs").exists());
+        assert!(temp_dir.path().join("src/utils.rs").exists());
+    }
 }

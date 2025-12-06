@@ -308,4 +308,119 @@ fn main() {}
         let item = result.unwrap();
         assert!(item.message.contains("@#$%^&*()"));
     }
+
+    #[test]
+    fn test_priority_to_color() {
+        // Test all priority levels have a color
+        assert_eq!(Priority::Critical.to_color(), Color::Red);
+        assert_eq!(Priority::High.to_color(), Color::Yellow);
+        assert_eq!(Priority::Medium.to_color(), Color::Cyan);
+        assert_eq!(Priority::Low.to_color(), Color::Green);
+    }
+
+    #[test]
+    fn test_priority_from_unknown_tag() {
+        // Unknown tags should default to Medium priority
+        assert_eq!(Priority::from_tag("UNKNOWN"), Priority::Medium);
+        assert_eq!(Priority::from_tag("CUSTOM"), Priority::Medium);
+        assert_eq!(Priority::from_tag("RANDOM"), Priority::Medium);
+    }
+
+    #[test]
+    fn test_priority_from_tag_case_variations() {
+        // Test case variations
+        assert_eq!(Priority::from_tag("bug"), Priority::Critical);
+        assert_eq!(Priority::from_tag("Bug"), Priority::Critical);
+        assert_eq!(Priority::from_tag("hack"), Priority::High);
+        assert_eq!(Priority::from_tag("Hack"), Priority::High);
+        assert_eq!(Priority::from_tag("warn"), Priority::High);
+        assert_eq!(Priority::from_tag("WARNING"), Priority::High);
+        assert_eq!(Priority::from_tag("perf"), Priority::Medium);
+        assert_eq!(Priority::from_tag("info"), Priority::Low);
+        assert_eq!(Priority::from_tag("IDEA"), Priority::Low);
+    }
+
+    #[test]
+    fn test_parse_file() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test.rs");
+
+        std::fs::write(
+            &file_path,
+            r#"
+// TODO: First item
+fn main() {
+    // FIXME: Second item
+}
+"#,
+        )
+        .unwrap();
+
+        let parser = TodoParser::new(&default_tags(), false);
+        let items = parser.parse_file(&file_path).unwrap();
+
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].tag, "TODO");
+        assert_eq!(items[1].tag, "FIXME");
+    }
+
+    #[test]
+    fn test_parse_file_nonexistent() {
+        let parser = TodoParser::new(&default_tags(), false);
+        let result = parser.parse_file(std::path::Path::new("/nonexistent/file.rs"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parser_tags_method() {
+        let tags = default_tags();
+        let parser = TodoParser::new(&tags, false);
+        assert_eq!(parser.tags(), &tags);
+    }
+
+    #[test]
+    fn test_parse_xxx_tag() {
+        let tags = vec!["XXX".to_string()];
+        let parser = TodoParser::new(&tags, false);
+        let result = parser.parse_line("// XXX: Critical issue", 1);
+
+        assert!(result.is_some());
+        let item = result.unwrap();
+        assert_eq!(item.tag, "XXX");
+        assert_eq!(item.priority, Priority::Critical);
+    }
+
+    #[test]
+    fn test_todo_item_equality() {
+        let item1 = TodoItem {
+            tag: "TODO".to_string(),
+            message: "Test".to_string(),
+            line: 1,
+            column: 1,
+            line_content: "// TODO: Test".to_string(),
+            author: None,
+            priority: Priority::Medium,
+        };
+
+        let item2 = TodoItem {
+            tag: "TODO".to_string(),
+            message: "Test".to_string(),
+            line: 1,
+            column: 1,
+            line_content: "// TODO: Test".to_string(),
+            author: None,
+            priority: Priority::Medium,
+        };
+
+        assert_eq!(item1, item2);
+    }
+
+    #[test]
+    fn test_priority_ordering() {
+        assert!(Priority::Critical > Priority::High);
+        assert!(Priority::High > Priority::Medium);
+        assert!(Priority::Medium > Priority::Low);
+    }
 }

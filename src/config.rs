@@ -272,4 +272,185 @@ flat: true
         assert_eq!(loaded.tags, vec!["SAVED"]);
         assert!(loaded.json);
     }
+
+    #[test]
+    fn test_save_yaml_config() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("test_config.yaml");
+
+        let mut config = Config::new();
+        config.tags = vec!["YAML_TAG".to_string()];
+        config.flat = true;
+
+        config.save(&config_path).unwrap();
+
+        let loaded = Config::load_from_file(&config_path).unwrap();
+        assert_eq!(loaded.tags, vec!["YAML_TAG"]);
+        assert!(loaded.flat);
+    }
+
+    #[test]
+    fn test_save_yml_config() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("test_config.yml");
+
+        let mut config = Config::new();
+        config.tags = vec!["YML_TAG".to_string()];
+
+        config.save(&config_path).unwrap();
+
+        let loaded = Config::load_from_file(&config_path).unwrap();
+        assert_eq!(loaded.tags, vec!["YML_TAG"]);
+    }
+
+    #[test]
+    fn test_load_from_parent_directory() {
+        let temp_dir = TempDir::new().unwrap();
+        let sub_dir = temp_dir.path().join("subdir");
+        std::fs::create_dir(&sub_dir).unwrap();
+
+        // Create config in parent directory
+        let config_content = r#"{"tags": ["PARENT_TAG"]}"#;
+        std::fs::write(temp_dir.path().join(".todorc.json"), config_content).unwrap();
+
+        // Load from subdirectory
+        let config = Config::load(&sub_dir).unwrap();
+        assert!(config.is_some());
+        assert_eq!(config.unwrap().tags, vec!["PARENT_TAG"]);
+    }
+
+    #[test]
+    fn test_load_no_config_returns_none() {
+        let temp_dir = TempDir::new().unwrap();
+        let config = Config::load(temp_dir.path()).unwrap();
+        assert!(config.is_none());
+    }
+
+    #[test]
+    fn test_load_todorc_without_extension() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_content = r#"{"tags": ["PLAIN_TODORC"]}"#;
+        std::fs::write(temp_dir.path().join(".todorc"), config_content).unwrap();
+
+        let config = Config::load(temp_dir.path()).unwrap();
+        assert!(config.is_some());
+        assert_eq!(config.unwrap().tags, vec!["PLAIN_TODORC"]);
+    }
+
+    #[test]
+    fn test_load_yaml_as_fallback_for_todorc() {
+        let temp_dir = TempDir::new().unwrap();
+        // Write YAML content to .todorc file (no extension)
+        let config_content = "tags:\n  - YAML_IN_TODORC\n";
+        std::fs::write(temp_dir.path().join(".todorc"), config_content).unwrap();
+
+        let config = Config::load(temp_dir.path()).unwrap();
+        assert!(config.is_some());
+        assert_eq!(config.unwrap().tags, vec!["YAML_IN_TODORC"]);
+    }
+
+    #[test]
+    fn test_merge_with_cli_empty_options() {
+        let mut config = Config::new();
+        let original_tags = config.tags.clone();
+
+        // Empty options should not change anything
+        config.merge_with_cli(
+            Some(vec![]),
+            Some(vec![]),
+            Some(vec![]),
+            false,
+            false,
+            false,
+        );
+
+        assert_eq!(config.tags, original_tags);
+        assert!(!config.json);
+        assert!(!config.flat);
+        assert!(!config.no_color);
+    }
+
+    #[test]
+    fn test_merge_with_cli_none_options() {
+        let mut config = Config::new();
+        let original_tags = config.tags.clone();
+
+        config.merge_with_cli(None, None, None, false, false, false);
+
+        assert_eq!(config.tags, original_tags);
+    }
+
+    #[test]
+    fn test_merge_extends_exclude() {
+        let mut config = Config::new();
+        config.exclude = vec!["existing/**".to_string()];
+
+        config.merge_with_cli(
+            None,
+            None,
+            Some(vec!["new/**".to_string()]),
+            false,
+            false,
+            false,
+        );
+
+        assert!(config.exclude.contains(&"existing/**".to_string()));
+        assert!(config.exclude.contains(&"new/**".to_string()));
+    }
+
+    #[test]
+    fn test_config_with_all_fields() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join(".todorc.json");
+
+        let config_content = r#"{
+            "tags": ["CUSTOM"],
+            "include": ["*.rs"],
+            "exclude": ["target/**"],
+            "json": true,
+            "flat": true,
+            "no_color": true,
+            "custom_pattern": "PATTERN",
+            "case_sensitive": true
+        }"#;
+
+        std::fs::write(&config_path, config_content).unwrap();
+
+        let config = Config::load_from_file(&config_path).unwrap();
+        assert_eq!(config.tags, vec!["CUSTOM"]);
+        assert_eq!(config.include, vec!["*.rs"]);
+        assert_eq!(config.exclude, vec!["target/**"]);
+        assert!(config.json);
+        assert!(config.flat);
+        assert!(config.no_color);
+        assert_eq!(config.custom_pattern, Some("PATTERN".to_string()));
+        assert!(config.case_sensitive);
+    }
+
+    #[test]
+    fn test_load_stops_at_root() {
+        // Test that loading from root doesn't panic
+        let root = std::path::Path::new("/");
+        let config = Config::load(root);
+        // Should not panic, may return None or Some
+        assert!(config.is_ok());
+    }
+
+    #[test]
+    fn test_load_from_file_invalid_content() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join(".todorc.json");
+
+        // Use content that's invalid for both JSON and YAML
+        std::fs::write(&config_path, "{{{{{{").unwrap();
+
+        let result = Config::load_from_file(&config_path);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_load_from_file_nonexistent() {
+        let result = Config::load_from_file(std::path::Path::new("/nonexistent/config.json"));
+        assert!(result.is_err());
+    }
 }
