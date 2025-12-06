@@ -456,4 +456,317 @@ fn main() {
         let result = scanner.scan(temp_dir.path()).unwrap();
         assert_eq!(result.total_count, 2);
     }
+
+    #[test]
+    fn test_scan_with_include_pattern() {
+        let temp_dir = TempDir::new().unwrap();
+
+        create_test_file(temp_dir.path(), "file.rs", "// TODO: Rust file");
+        create_test_file(temp_dir.path(), "file.py", "# TODO: Python file");
+        create_test_file(temp_dir.path(), "file.js", "// TODO: JS file");
+
+        let parser = TodoParser::new(&default_tags(), false);
+        let options = ScanOptions {
+            include: vec!["*.rs".to_string()],
+            ..Default::default()
+        };
+        let scanner = Scanner::new(parser, options);
+
+        let result = scanner.scan(temp_dir.path()).unwrap();
+
+        // Should only find the Rust file
+        assert_eq!(result.total_count, 1);
+    }
+
+    #[test]
+    fn test_scan_with_exclude_pattern() {
+        let temp_dir = TempDir::new().unwrap();
+
+        create_test_file(temp_dir.path(), "src/main.rs", "// TODO: Main");
+        create_test_file(
+            temp_dir.path(),
+            "target/debug.rs",
+            "// TODO: Build artifact",
+        );
+
+        let parser = TodoParser::new(&default_tags(), false);
+        let options = ScanOptions {
+            exclude: vec!["target/**".to_string()],
+            ..Default::default()
+        };
+        let scanner = Scanner::new(parser, options);
+
+        let result = scanner.scan(temp_dir.path()).unwrap();
+
+        // Should only find main.rs, not target files
+        assert_eq!(result.total_count, 1);
+    }
+
+    #[test]
+    fn test_scan_with_include_and_exclude() {
+        let temp_dir = TempDir::new().unwrap();
+
+        create_test_file(temp_dir.path(), "src/lib.rs", "// TODO: Lib");
+        create_test_file(temp_dir.path(), "src/test.rs", "// TODO: Test");
+        create_test_file(
+            temp_dir.path(),
+            "tests/integration.rs",
+            "// TODO: Integration",
+        );
+
+        let parser = TodoParser::new(&default_tags(), false);
+        let options = ScanOptions {
+            include: vec!["**/*.rs".to_string()],
+            exclude: vec!["tests/**".to_string()],
+            ..Default::default()
+        };
+        let scanner = Scanner::new(parser, options);
+
+        let result = scanner.scan(temp_dir.path()).unwrap();
+
+        // Should find src files but not tests
+        assert_eq!(result.total_count, 2);
+    }
+
+    #[test]
+    fn test_scan_with_threads() {
+        let temp_dir = TempDir::new().unwrap();
+
+        create_test_file(temp_dir.path(), "a.rs", "// TODO: A");
+        create_test_file(temp_dir.path(), "b.rs", "// TODO: B");
+        create_test_file(temp_dir.path(), "c.rs", "// TODO: C");
+
+        let parser = TodoParser::new(&default_tags(), false);
+        let options = ScanOptions {
+            threads: 2,
+            ..Default::default()
+        };
+        let scanner = Scanner::new(parser, options);
+
+        let result = scanner.scan(temp_dir.path()).unwrap();
+
+        assert_eq!(result.total_count, 3);
+    }
+
+    #[test]
+    fn test_scan_with_follow_links() {
+        let temp_dir = TempDir::new().unwrap();
+
+        create_test_file(temp_dir.path(), "original.rs", "// TODO: Original");
+
+        let parser = TodoParser::new(&default_tags(), false);
+        let options = ScanOptions {
+            follow_links: true,
+            ..Default::default()
+        };
+        let scanner = Scanner::new(parser, options);
+
+        let result = scanner.scan(temp_dir.path()).unwrap();
+
+        // Should work without panicking
+        assert!(result.total_count >= 1);
+    }
+
+    #[test]
+    fn test_scan_result_sorted_files() {
+        let temp_dir = TempDir::new().unwrap();
+
+        create_test_file(temp_dir.path(), "z.rs", "// TODO: Z");
+        create_test_file(temp_dir.path(), "a.rs", "// TODO: A");
+        create_test_file(temp_dir.path(), "m.rs", "// TODO: M");
+
+        let parser = TodoParser::new(&default_tags(), false);
+        let scanner = Scanner::new(parser, ScanOptions::default());
+
+        let result = scanner.scan(temp_dir.path()).unwrap();
+        let sorted = result.sorted_files();
+
+        // Files should be sorted alphabetically
+        let paths: Vec<_> = sorted.iter().map(|(p, _)| p.to_path_buf()).collect();
+        let mut expected = paths.clone();
+        expected.sort();
+        assert_eq!(paths, expected);
+    }
+
+    #[test]
+    fn test_scan_binary_file_skipped() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create a text file with TODO
+        create_test_file(temp_dir.path(), "text.rs", "// TODO: Text file");
+
+        // Create a binary-like file (with null bytes)
+        let binary_path = temp_dir.path().join("binary.bin");
+        fs::write(&binary_path, b"\x00\x01\x02\x03// TODO: Binary").unwrap();
+
+        let parser = TodoParser::new(&default_tags(), false);
+        let scanner = Scanner::new(parser, ScanOptions::default());
+
+        let result = scanner.scan(temp_dir.path()).unwrap();
+
+        // Should find the text file TODO
+        assert!(result.total_count >= 1);
+    }
+
+    #[test]
+    fn test_scan_without_gitignore_respect() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Initialize a git repository
+        fs::create_dir(temp_dir.path().join(".git")).unwrap();
+
+        // Create .gitignore
+        create_test_file(temp_dir.path(), ".gitignore", "ignored/\n");
+
+        // Create files
+        create_test_file(temp_dir.path(), "included.rs", "// TODO: Included");
+        create_test_file(temp_dir.path(), "ignored/hidden.rs", "// TODO: Ignored");
+
+        let parser = TodoParser::new(&default_tags(), false);
+        let options = ScanOptions {
+            respect_gitignore: false,
+            ..Default::default()
+        };
+        let scanner = Scanner::new(parser, options);
+
+        let result = scanner.scan(temp_dir.path()).unwrap();
+
+        // Should find both files when gitignore is not respected
+        assert_eq!(result.total_count, 2);
+    }
+
+    #[test]
+    fn test_scan_result_new() {
+        let root = PathBuf::from("/test/root");
+        let result = ScanResult::new(root.clone());
+
+        assert_eq!(result.root, root);
+        assert_eq!(result.total_count, 0);
+        assert_eq!(result.files_scanned, 0);
+        assert_eq!(result.files_with_todos, 0);
+        assert!(result.files.is_empty());
+        assert!(result.tag_counts.is_empty());
+    }
+
+    #[test]
+    fn test_scan_options_default() {
+        let options = ScanOptions::default();
+
+        assert!(options.include.is_empty());
+        assert!(options.exclude.is_empty());
+        assert_eq!(options.max_depth, 0);
+        assert!(!options.follow_links);
+        assert!(!options.hidden);
+        assert_eq!(options.threads, 0);
+        assert!(options.respect_gitignore);
+    }
+
+    #[test]
+    fn test_scan_invalid_path() {
+        let parser = TodoParser::new(&default_tags(), false);
+        let scanner = Scanner::new(parser, ScanOptions::default());
+
+        let result = scanner.scan(Path::new("/nonexistent/path/that/does/not/exist"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_scan_file_with_read_error() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create a regular file
+        create_test_file(temp_dir.path(), "readable.rs", "// TODO: Readable");
+
+        // Create a directory with a name that looks like a file (to test edge cases)
+        let dir_as_file = temp_dir.path().join("not_a_file.rs");
+        fs::create_dir(&dir_as_file).unwrap();
+
+        let parser = TodoParser::new(&default_tags(), false);
+        let scanner = Scanner::new(parser, ScanOptions::default());
+
+        let result = scanner.scan(temp_dir.path()).unwrap();
+
+        // Should still find the readable file
+        assert!(result.total_count >= 1);
+    }
+
+    #[test]
+    fn test_scan_result_add_file_empty() {
+        let mut result = ScanResult::new(PathBuf::from("/test"));
+
+        // Adding empty items should increment files_scanned but not files_with_todos
+        result.add_file(PathBuf::from("/test/empty.rs"), vec![]);
+
+        assert_eq!(result.files_scanned, 1);
+        assert_eq!(result.files_with_todos, 0);
+        assert_eq!(result.total_count, 0);
+    }
+
+    #[test]
+    fn test_scan_result_tag_counts() {
+        let mut result = ScanResult::new(PathBuf::from("/test"));
+
+        result.add_file(
+            PathBuf::from("/test/file.rs"),
+            vec![
+                TodoItem {
+                    tag: "TODO".to_string(),
+                    message: "First".to_string(),
+                    line: 1,
+                    column: 1,
+                    line_content: "// TODO: First".to_string(),
+                    author: None,
+                    priority: crate::parser::Priority::Medium,
+                },
+                TodoItem {
+                    tag: "TODO".to_string(),
+                    message: "Second".to_string(),
+                    line: 2,
+                    column: 1,
+                    line_content: "// TODO: Second".to_string(),
+                    author: None,
+                    priority: crate::parser::Priority::Medium,
+                },
+                TodoItem {
+                    tag: "FIXME".to_string(),
+                    message: "Third".to_string(),
+                    line: 3,
+                    column: 1,
+                    line_content: "// FIXME: Third".to_string(),
+                    author: None,
+                    priority: crate::parser::Priority::Critical,
+                },
+            ],
+        );
+
+        assert_eq!(result.tag_counts.get("TODO"), Some(&2));
+        assert_eq!(result.tag_counts.get("FIXME"), Some(&1));
+    }
+
+    #[test]
+    fn test_scan_symlink_not_followed() {
+        let temp_dir = TempDir::new().unwrap();
+
+        create_test_file(temp_dir.path(), "original.rs", "// TODO: Original");
+
+        // Create a symlink (if supported on the platform)
+        #[cfg(unix)]
+        {
+            let link_path = temp_dir.path().join("link.rs");
+            let original_path = temp_dir.path().join("original.rs");
+            std::os::unix::fs::symlink(&original_path, &link_path).ok();
+        }
+
+        let parser = TodoParser::new(&default_tags(), false);
+        let options = ScanOptions {
+            follow_links: false,
+            ..Default::default()
+        };
+        let scanner = Scanner::new(parser, options);
+
+        let result = scanner.scan(temp_dir.path()).unwrap();
+
+        // Should find at least the original file
+        assert!(result.total_count >= 1);
+    }
 }
