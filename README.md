@@ -74,6 +74,7 @@ Options:
   -d, --depth <N>          Maximum depth to scan (0 = unlimited)
       --json               Output in JSON format
       --flat               Output in flat format (no tree)
+      --group-by-tag       Group results by tag instead of by file
       --hidden             Include hidden files
       --follow-links       Follow symbolic links
       --case-sensitive     Case-sensitive tag matching
@@ -213,7 +214,28 @@ Found 6 TODO items in 3 files (15 files scanned)
   TODO: 2, FIXME: 1, NOTE: 1, BUG: 1, HACK: 1
 ```
 
-### Example 2: JSON Output
+### Example 2: Group by Tag
+
+```bash
+$ tt scan --group-by-tag ./src
+
+├── BUG (1)
+│   └── src/lib.rs:78 - Memory leak in this function
+├── FIXME (1)
+│   └── src/main.rs:25 - This needs refactoring
+├── HACK (1)
+│   └── src/utils.rs:15 - Temporary workaround
+├── NOTE (1)
+│   └── src/lib.rs:5 - Public API
+└── TODO (2)
+    ├── src/main.rs:10 - Implement error handling
+    └── src/lib.rs:42 - Add documentation
+
+Found 6 TODO items in 3 files (15 files scanned)
+  TODO: 2, FIXME: 1, NOTE: 1, BUG: 1, HACK: 1
+```
+
+### Example 3: JSON Output
 
 ```bash
 $ tt scan --json
@@ -248,7 +270,7 @@ $ tt scan --json
 }
 ```
 
-### Example 3: Filter by Tag
+### Example 4: Filter by Tag
 
 ```bash
 $ tt list --filter BUG
@@ -260,7 +282,7 @@ Found 2 TODO items in 2 files (15 files scanned)
   BUG: 2
 ```
 
-### Example 4: Include/Exclude Patterns
+### Example 5: Include/Exclude Patterns
 
 ```bash
 # Only scan Rust files
@@ -273,7 +295,7 @@ tt scan --exclude "*_test.rs,tests/**"
 tt scan --include "*.rs,*.py" --exclude "target/**,__pycache__/**"
 ```
 
-### Example 5: Statistics
+### Example 6: Statistics
 
 ```bash
 $ tt stats
