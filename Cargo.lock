@@ -564,7 +564,6 @@ dependencies = [
  "dirs",
  "glob",
  "ignore",
- "once_cell",
  "regex",
  "serde",
  "serde_json",
