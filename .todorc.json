@@ -1,0 +1,19 @@
+{
+  "tags": [
+    "TODO",
+    "FIXME",
+    "BUG",
+    "HACK",
+    "NOTE",
+    "XXX",
+    "WARN",
+    "PERF"
+  ],
+  "include": [],
+  "exclude": [],
+  "json": false,
+  "flat": false,
+  "no_color": false,
+  "custom_pattern": null,
+  "case_sensitive": false
+}
