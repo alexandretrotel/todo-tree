@@ -2,6 +2,8 @@
 
 A command-line tool to find and display TODO-style comments in your codebase, similar to the VS Code "Todo Tree" extension.
 
+![Demo of Todo Tree](./assets/todo-tree.gif)
+
 ## Features
 
 - 🔍 **Recursive directory scanning** - Respects `.gitignore` rules automatically
