@@ -816,4 +816,590 @@ mod tests {
         // Should have tag headers
         assert!(output_str.contains("FIXME (1)") || output_str.contains("TODO (1)"));
     }
+
+    #[test]
+    fn test_colorize_tag_disabled() {
+        let options = PrintOptions {
+            colored: false,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        // When color is disabled, should return plain text
+        let result = printer.colorize_tag("TODO");
+        assert_eq!(result, "TODO");
+    }
+
+    #[test]
+    fn test_make_clickable_link_disabled() {
+        let options = PrintOptions {
+            clickable_links: false,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        let path = PathBuf::from("/test/file.rs");
+        let result = printer.make_clickable_link(&path, 10);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_make_line_link_disabled() {
+        let options = PrintOptions {
+            clickable_links: false,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        let path = PathBuf::from("/test/file.rs");
+        let result = printer.make_line_link(&path, 10);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_print_tree_with_author() {
+        let mut result = ScanResult::new(PathBuf::from("/test"));
+        result.add_file(
+            PathBuf::from("/test/src/main.rs"),
+            vec![TodoItem {
+                tag: "TODO".to_string(),
+                message: "With author".to_string(),
+                line: 10,
+                column: 5,
+                line_content: "// TODO(alice): With author".to_string(),
+                author: Some("alice".to_string()),
+                priority: Priority::Medium,
+            }],
+        );
+
+        let options = PrintOptions {
+            colored: false,
+            clickable_links: false,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        let mut output = Vec::new();
+        printer.print_to(&mut output, &result).unwrap();
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("(alice)"));
+        assert!(output_str.contains("With author"));
+    }
+
+    #[test]
+    fn test_print_flat_empty() {
+        let result = ScanResult::new(PathBuf::from("/test"));
+        let options = PrintOptions {
+            format: OutputFormat::Flat,
+            colored: false,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        let mut output = Vec::new();
+        printer.print_to(&mut output, &result).unwrap();
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("No TODO items found"));
+    }
+
+    #[test]
+    fn test_format_path_no_base() {
+        let options = PrintOptions {
+            full_paths: false,
+            base_path: None,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        let path = PathBuf::from("/test/src/main.rs");
+        let formatted = printer.format_path(&path);
+        assert_eq!(formatted, "/test/src/main.rs");
+    }
+
+    #[test]
+    fn test_format_path_strip_prefix_fails() {
+        let options = PrintOptions {
+            full_paths: false,
+            base_path: Some(PathBuf::from("/different/base")),
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        let path = PathBuf::from("/test/src/main.rs");
+        let formatted = printer.format_path(&path);
+        // Should fall back to full path when strip_prefix fails
+        assert_eq!(formatted, "/test/src/main.rs");
+    }
+
+    #[test]
+    fn test_json_output_with_author() {
+        let mut result = ScanResult::new(PathBuf::from("/test"));
+        result.add_file(
+            PathBuf::from("/test/src/main.rs"),
+            vec![TodoItem {
+                tag: "TODO".to_string(),
+                message: "Test".to_string(),
+                line: 10,
+                column: 5,
+                line_content: "// TODO(bob): Test".to_string(),
+                author: Some("bob".to_string()),
+                priority: Priority::Medium,
+            }],
+        );
+
+        let options = PrintOptions::default();
+        let json_output = JsonOutput::from_scan_result(&result, &options);
+
+        assert_eq!(
+            json_output.files[0].items[0].author,
+            Some("bob".to_string())
+        );
+    }
+
+    #[test]
+    fn test_print_summary_with_multiple_tags() {
+        let mut result = ScanResult::new(PathBuf::from("/test"));
+        result.add_file(
+            PathBuf::from("/test/a.rs"),
+            vec![
+                TodoItem {
+                    tag: "TODO".to_string(),
+                    message: "First".to_string(),
+                    line: 1,
+                    column: 1,
+                    line_content: "// TODO: First".to_string(),
+                    author: None,
+                    priority: Priority::Medium,
+                },
+                TodoItem {
+                    tag: "FIXME".to_string(),
+                    message: "Second".to_string(),
+                    line: 2,
+                    column: 1,
+                    line_content: "// FIXME: Second".to_string(),
+                    author: None,
+                    priority: Priority::Critical,
+                },
+                TodoItem {
+                    tag: "NOTE".to_string(),
+                    message: "Third".to_string(),
+                    line: 3,
+                    column: 1,
+                    line_content: "// NOTE: Third".to_string(),
+                    author: None,
+                    priority: Priority::Low,
+                },
+            ],
+        );
+
+        let options = PrintOptions {
+            colored: false,
+            clickable_links: false,
+            show_summary: true,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        let mut output = Vec::new();
+        printer.print_to(&mut output, &result).unwrap();
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("Found 3 TODO items"));
+        assert!(output_str.contains("TODO:"));
+        assert!(output_str.contains("FIXME:"));
+        assert!(output_str.contains("NOTE:"));
+    }
+
+    #[test]
+    fn test_print_tree_multiple_files() {
+        let mut result = ScanResult::new(PathBuf::from("/test"));
+        result.add_file(
+            PathBuf::from("/test/a.rs"),
+            vec![TodoItem {
+                tag: "TODO".to_string(),
+                message: "In A".to_string(),
+                line: 1,
+                column: 1,
+                line_content: "// TODO: In A".to_string(),
+                author: None,
+                priority: Priority::Medium,
+            }],
+        );
+        result.add_file(
+            PathBuf::from("/test/b.rs"),
+            vec![TodoItem {
+                tag: "FIXME".to_string(),
+                message: "In B".to_string(),
+                line: 1,
+                column: 1,
+                line_content: "// FIXME: In B".to_string(),
+                author: None,
+                priority: Priority::Critical,
+            }],
+        );
+
+        let options = PrintOptions {
+            colored: false,
+            clickable_links: false,
+            show_summary: false,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        let mut output = Vec::new();
+        printer.print_to(&mut output, &result).unwrap();
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(output_str.contains("In A"));
+        assert!(output_str.contains("In B"));
+        // Check tree structure characters
+        assert!(output_str.contains("├──") || output_str.contains("└──"));
+    }
+
+    #[test]
+    fn test_print_tree_colored() {
+        let result = create_test_result();
+        let options = PrintOptions {
+            colored: true,
+            clickable_links: false,
+            show_summary: true,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        let mut output = Vec::new();
+        // Should not panic with colored output
+        printer.print_to(&mut output, &result).unwrap();
+        assert!(!output.is_empty());
+    }
+
+    #[test]
+    fn test_print_flat_colored() {
+        let result = create_test_result();
+        let options = PrintOptions {
+            format: OutputFormat::Flat,
+            colored: true,
+            clickable_links: false,
+            show_summary: true,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        let mut output = Vec::new();
+        printer.print_to(&mut output, &result).unwrap();
+        assert!(!output.is_empty());
+    }
+
+    #[test]
+    fn test_json_item_priority() {
+        let mut result = ScanResult::new(PathBuf::from("/test"));
+        result.add_file(
+            PathBuf::from("/test/file.rs"),
+            vec![
+                TodoItem {
+                    tag: "BUG".to_string(),
+                    message: "Critical".to_string(),
+                    line: 1,
+                    column: 1,
+                    line_content: "// BUG: Critical".to_string(),
+                    author: None,
+                    priority: Priority::Critical,
+                },
+                TodoItem {
+                    tag: "NOTE".to_string(),
+                    message: "Low".to_string(),
+                    line: 2,
+                    column: 1,
+                    line_content: "// NOTE: Low".to_string(),
+                    author: None,
+                    priority: Priority::Low,
+                },
+            ],
+        );
+
+        let options = PrintOptions::default();
+        let json_output = JsonOutput::from_scan_result(&result, &options);
+
+        // Check priority values in JSON output (priority is serialized as a string)
+        let items = &json_output.files[0].items;
+        assert!(items.iter().any(|i| i.priority == "Critical"));
+        assert!(items.iter().any(|i| i.priority == "Low"));
+    }
+
+    #[test]
+    fn test_group_by_tag_multiple_tags() {
+        let mut result = ScanResult::new(PathBuf::from("/test"));
+        result.add_file(
+            PathBuf::from("/test/file.rs"),
+            vec![
+                TodoItem {
+                    tag: "TODO".to_string(),
+                    message: "First TODO".to_string(),
+                    line: 1,
+                    column: 1,
+                    line_content: "// TODO: First TODO".to_string(),
+                    author: None,
+                    priority: Priority::Medium,
+                },
+                TodoItem {
+                    tag: "FIXME".to_string(),
+                    message: "A FIXME".to_string(),
+                    line: 2,
+                    column: 1,
+                    line_content: "// FIXME: A FIXME".to_string(),
+                    author: None,
+                    priority: Priority::Critical,
+                },
+                TodoItem {
+                    tag: "TODO".to_string(),
+                    message: "Second TODO".to_string(),
+                    line: 3,
+                    column: 1,
+                    line_content: "// TODO: Second TODO".to_string(),
+                    author: None,
+                    priority: Priority::Medium,
+                },
+            ],
+        );
+
+        let options = PrintOptions {
+            colored: false,
+            clickable_links: false,
+            group_by_tag: true,
+            show_summary: false,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        let mut output = Vec::new();
+        printer.print_to(&mut output, &result).unwrap();
+
+        let output_str = String::from_utf8(output).unwrap();
+        // Both tags should appear as headers
+        assert!(output_str.contains("TODO (2)"));
+        assert!(output_str.contains("FIXME (1)"));
+    }
+
+    #[test]
+    fn test_print_to_stdout() {
+        let result = create_test_result();
+        let options = PrintOptions {
+            colored: false,
+            clickable_links: false,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        // Test that print() works (writes to stdout)
+        // We can't easily capture stdout, but we can verify it doesn't panic
+        // The actual test is done via print_to with a buffer
+        let mut buffer = Vec::new();
+        let result_io = printer.print_to(&mut buffer, &result);
+        assert!(result_io.is_ok());
+    }
+
+    #[test]
+    fn test_output_format_enum() {
+        // Test that OutputFormat variants work correctly
+        let tree = OutputFormat::Tree;
+        let flat = OutputFormat::Flat;
+        let json = OutputFormat::Json;
+
+        // Just verify they can be used in match expressions
+        match tree {
+            OutputFormat::Tree => {}
+            _ => panic!("Expected Tree"),
+        }
+        match flat {
+            OutputFormat::Flat => {}
+            _ => panic!("Expected Flat"),
+        }
+        match json {
+            OutputFormat::Json => {}
+            _ => panic!("Expected Json"),
+        }
+    }
+
+    #[test]
+    fn test_print_options_default_values() {
+        let options = PrintOptions::default();
+
+        assert!(matches!(options.format, OutputFormat::Tree));
+        assert!(options.colored);
+        assert!(options.show_line_numbers);
+        assert!(!options.full_paths);
+        assert!(options.clickable_links);
+        assert!(options.base_path.is_none());
+        assert!(options.show_summary);
+        assert!(!options.group_by_tag);
+    }
+
+    #[test]
+    fn test_json_summary_fields() {
+        let result = create_test_result();
+        let options = PrintOptions::default();
+        let json_output = JsonOutput::from_scan_result(&result, &options);
+
+        assert_eq!(json_output.summary.total_count, result.total_count);
+        assert_eq!(
+            json_output.summary.files_with_todos,
+            result.files_with_todos
+        );
+        assert_eq!(json_output.summary.files_scanned, result.files_scanned);
+        assert!(!json_output.summary.tag_counts.is_empty());
+    }
+
+    #[test]
+    fn test_json_file_entry_path() {
+        let mut result = ScanResult::new(PathBuf::from("/test"));
+        result.add_file(
+            PathBuf::from("/test/deep/nested/file.rs"),
+            vec![TodoItem {
+                tag: "TODO".to_string(),
+                message: "Test".to_string(),
+                line: 1,
+                column: 1,
+                line_content: "// TODO: Test".to_string(),
+                author: None,
+                priority: Priority::Medium,
+            }],
+        );
+
+        let options = PrintOptions {
+            full_paths: false,
+            base_path: Some(PathBuf::from("/test")),
+            ..Default::default()
+        };
+        let json_output = JsonOutput::from_scan_result(&result, &options);
+
+        // Path should be relative when base_path is set
+        assert!(json_output.files[0].path.contains("nested"));
+    }
+
+    #[test]
+    fn test_json_file_entry_full_path() {
+        let mut result = ScanResult::new(PathBuf::from("/test"));
+        result.add_file(
+            PathBuf::from("/test/file.rs"),
+            vec![TodoItem {
+                tag: "TODO".to_string(),
+                message: "Test".to_string(),
+                line: 1,
+                column: 1,
+                line_content: "// TODO: Test".to_string(),
+                author: None,
+                priority: Priority::Medium,
+            }],
+        );
+
+        let options = PrintOptions {
+            full_paths: true,
+            ..Default::default()
+        };
+        let json_output = JsonOutput::from_scan_result(&result, &options);
+
+        // Path should be full when full_paths is true
+        assert!(json_output.files[0].path.starts_with("/test"));
+    }
+
+    #[test]
+    fn test_clickable_links_enabled_no_terminal_support() {
+        // When clickable_links is enabled but terminal doesn't support them
+        // (most test environments), the functions should return None
+        let options = PrintOptions {
+            clickable_links: true,
+            colored: false,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        // Create a real file to test with
+        use tempfile::TempDir;
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test.rs");
+        std::fs::write(&file_path, "// TODO: test").unwrap();
+
+        // These may return None if terminal doesn't support hyperlinks
+        let link = printer.make_clickable_link(&file_path, 1);
+        let line_link = printer.make_line_link(&file_path, 1);
+
+        // In most test environments, these will be None
+        // but we just verify they don't panic
+        let _ = link;
+        let _ = line_link;
+    }
+
+    #[test]
+    fn test_tree_item_with_last_file_and_item() {
+        let mut result = ScanResult::new(PathBuf::from("/test"));
+        result.add_file(
+            PathBuf::from("/test/only_file.rs"),
+            vec![TodoItem {
+                tag: "TODO".to_string(),
+                message: "Only item".to_string(),
+                line: 1,
+                column: 1,
+                line_content: "// TODO: Only item".to_string(),
+                author: None,
+                priority: Priority::Medium,
+            }],
+        );
+
+        let options = PrintOptions {
+            colored: false,
+            clickable_links: false,
+            show_summary: false,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        let mut output = Vec::new();
+        printer.print_to(&mut output, &result).unwrap();
+
+        let output_str = String::from_utf8(output).unwrap();
+        // Last file uses └── prefix
+        assert!(output_str.contains("└──"));
+    }
+
+    #[test]
+    fn test_print_tree_item_with_colored_author() {
+        let mut result = ScanResult::new(PathBuf::from("/test"));
+        result.add_file(
+            PathBuf::from("/test/file.rs"),
+            vec![TodoItem {
+                tag: "TODO".to_string(),
+                message: "With colored author".to_string(),
+                line: 1,
+                column: 1,
+                line_content: "// TODO(developer): With colored author".to_string(),
+                author: Some("developer".to_string()),
+                priority: Priority::Medium,
+            }],
+        );
+
+        let options = PrintOptions {
+            colored: true,
+            clickable_links: false,
+            show_summary: false,
+            ..Default::default()
+        };
+        let printer = Printer::new(options);
+
+        let mut output = Vec::new();
+        printer.print_to(&mut output, &result).unwrap();
+
+        // Should not panic and should produce output
+        assert!(!output.is_empty());
+    }
+
+    #[test]
+    fn test_supports_hyperlinks_function() {
+        // Just test that the function runs without panicking
+        // The actual result depends on the environment
+        let result = supports_hyperlinks();
+        // Result is a boolean
+        let _ = result;
+    }
 }
