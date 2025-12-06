@@ -1327,8 +1327,8 @@ mod tests {
 
         // In most test environments, these will be None
         // but we just verify they don't panic
-        let _ = link;
-        let _ = line_link;
+        assert!(link.is_none(), "Expected make_clickable_link to return None when terminal does not support hyperlinks");
+        assert!(line_link.is_none(), "Expected make_line_link to return None when terminal does not support hyperlinks");
     }
 
     #[test]
