@@ -1,0 +1,15 @@
+[package]
+name = "zed-todo-tree"
+version = "0.1.0"
+edition = "2024"
+authors = ["Alexandre Trotel"]
+license-file = "../../LICENSE.md"
+description = "Zed editor extension that integrates the todo-tree CLI functionality into the Zed editor."
+# Optional: add homepage/repository/keywords later
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+zed_extension_api = "0.7.0"
+serde = { version = "1", features = ["derive"] }
