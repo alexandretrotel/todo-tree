@@ -373,7 +373,7 @@ Colors are automatically enabled when outputting to a terminal. Use `--no-color`
 
 ### Zed Editor
 
-The Todo Tree Zed extension integrates TODO scanning directly into the Zed Assistant using slash commands.
+The Todo Tree Zed extension integrates TODO scanning directly into Zed Assistant using slash commands.
 
 #### Installation
 
