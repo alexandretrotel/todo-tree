@@ -1,0 +1,15 @@
+id = "todo-tree"
+name = "Todo Tree"
+version = "0.1.0"
+schema_version = 1
+authors = ["Alexandre Trotel"]
+description = "Find and display TODO-style comments in your codebase using slash commands in the Assistant"
+repository = "https://github.com/alexandretrotel/todo-tree"
+
+[slash_commands.todos]
+description = "List all TODO-style comments in the project"
+requires_argument = false
+
+[slash_commands.todos-stats]
+description = "Show statistics about TODO-style comments in the project"
+requires_argument = false
