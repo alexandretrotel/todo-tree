@@ -3,9 +3,10 @@ name = "Todo Tree"
 version = "0.1.0"
 schema_version = 1
 authors = ["Alexandre Trotel"]
-description = "Find and display TODO-style comments in your codebase using slash commands in the Assistant"
+description = "Find and display TODO-style comments in your codebase. Provides slash commands for the Assistant, syntax highlighting for TODO comments, outline integration, and LSP diagnostics."
 repository = "https://github.com/alexandretrotel/todo-tree"
 
+# Slash Commands for the Assistant
 [slash_commands.todos]
 description = "List all TODO-style comments in the project"
 requires_argument = false
@@ -13,3 +14,8 @@ requires_argument = false
 [slash_commands.todos-stats]
 description = "Show statistics about TODO-style comments in the project"
 requires_argument = false
+
+# Language Server for diagnostics
+[language_servers.todo-tree-lsp]
+name = "Todo Tree LSP"
+languages = ["Rust", "Python", "JavaScript", "TypeScript", "Go", "C", "C++", "Java", "Ruby", "Shell", "Markdown"]
