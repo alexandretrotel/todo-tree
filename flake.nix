@@ -54,7 +54,7 @@
     });
     packages = forEachSupportedSystem ({pkgs}: let
       naersklib = pkgs.callPackage naersk {};
-      todo-tree = naersklib.buildPackage {
+      package = naersklib.buildPackage {
         pname = "todo-tree";
         # TODO: When updating your tag, update this version field to match what is in Cargo.toml
         version = "0.1.0";
@@ -64,7 +64,8 @@
       };
     in {
       # HACK: Lets you refer to the package with either `default` or `todo-tree`
-      default = todo-tree;
+      todo-tree = package;
+      default = package;
     });
   };
 }
