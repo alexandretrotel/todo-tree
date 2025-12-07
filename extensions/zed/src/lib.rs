@@ -552,7 +552,7 @@ mod tests {
 
         for (result, filter) in test_cases {
             let output = build_todos_output(&result, &filter);
-            let range_end = output.sections[0].range.clone().end as usize;
+            let range_end = output.sections[0].range.end as usize;
             assert_eq!(
                 range_end,
                 output.text.len(),
@@ -560,7 +560,7 @@ mod tests {
             );
 
             let stats = build_stats_output(&result);
-            let stats_range_end = stats.sections[0].range.clone().end as usize;
+            let stats_range_end = stats.sections[0].range.end as usize;
             assert_eq!(
                 stats_range_end,
                 stats.text.len(),

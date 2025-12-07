@@ -304,7 +304,7 @@ mod tests {
         let result = create_populated_scan_result();
         let output = build_todos_output(&result, &[]);
 
-        let range_end = output.sections[0].range.clone().end as usize;
+        let range_end = output.sections[0].range.end as usize;
         assert_eq!(range_end, output.text.len());
     }
 
@@ -349,7 +349,7 @@ mod tests {
         let result = create_populated_scan_result();
         let output = build_stats_output(&result);
 
-        let range_end = output.sections[0].range.clone().end as usize;
+        let range_end = output.sections[0].range.end as usize;
         assert_eq!(range_end, output.text.len());
     }
 
