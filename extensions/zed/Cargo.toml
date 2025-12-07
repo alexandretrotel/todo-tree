@@ -5,7 +5,9 @@ edition = "2024"
 authors = ["Alexandre Trotel"]
 license-file = "../../LICENSE.md"
 description = "Zed editor extension that integrates the todo-tree CLI functionality into the Zed editor."
-# Optional: add homepage/repository/keywords later
+repository = "https://github.com/alexandretrotel/todo-tree"
+homepage = "https://github.com/alexandretrotel/todo-tree"
+keywords = ["zed", "extension", "todo", "todo-tree", "productivity"]
 
 [lib]
 crate-type = ["cdylib"]
