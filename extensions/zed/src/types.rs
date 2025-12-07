@@ -17,18 +17,6 @@ impl ScanResult {
     pub fn is_empty(&self) -> bool {
         self.files.is_empty()
     }
-
-    /// Get total count of TODO items
-    #[allow(dead_code)]
-    pub fn total_count(&self) -> usize {
-        self.summary.total_count
-    }
-
-    /// Get count of files containing TODOs
-    #[allow(dead_code)]
-    pub fn files_with_todos(&self) -> usize {
-        self.summary.files_with_todos
-    }
 }
 
 /// A file containing TODO items.
@@ -38,14 +26,6 @@ pub struct FileResult {
     pub path: String,
     /// TODO items found in this file
     pub items: Vec<TodoItem>,
-}
-
-impl FileResult {
-    /// Get the number of items in this file
-    #[allow(dead_code)]
-    pub fn item_count(&self) -> usize {
-        self.items.len()
-    }
 }
 
 /// A single TODO item found in source code.
@@ -269,22 +249,22 @@ mod tests {
     }
 
     #[test]
-    fn test_scan_result_total_count() {
+    fn test_scan_result_summary_total_count() {
         let result = create_test_scan_result();
-        assert_eq!(result.total_count(), 3);
+        assert_eq!(result.summary.total_count, 3);
     }
 
     #[test]
-    fn test_scan_result_files_with_todos() {
+    fn test_scan_result_summary_files_with_todos() {
         let result = create_test_scan_result();
-        assert_eq!(result.files_with_todos(), 2);
+        assert_eq!(result.summary.files_with_todos, 2);
     }
 
     #[test]
-    fn test_file_result_item_count() {
+    fn test_file_result_items_len() {
         let result = create_test_scan_result();
-        assert_eq!(result.files[0].item_count(), 2);
-        assert_eq!(result.files[1].item_count(), 1);
+        assert_eq!(result.files[0].items.len(), 2);
+        assert_eq!(result.files[1].items.len(), 1);
     }
 
     #[test]
