@@ -129,8 +129,10 @@ fn make_test_command(name: &str) -> SlashCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{FileResult, Summary, TodoItem};
+    use crate::types::FileResult;
     use std::collections::HashMap;
+    use todo_tree_core::Summary;
+    use todo_tree_core::TodoItem;
 
     fn create_empty_scan_result() -> ScanResult {
         ScanResult {

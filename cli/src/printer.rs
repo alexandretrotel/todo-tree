@@ -1,10 +1,10 @@
-use crate::parser::{Priority, TodoItem};
-use crate::scanner::ScanResult;
+use crate::parser::priority_to_color;
 use colored::Colorize;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use todo_tree_core::{Priority, ScanResult, TodoItem};
 
 /// Output format for printing results
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -94,7 +94,7 @@ impl Printer {
 
     /// Print results in tree format
     fn print_tree<W: Write>(&self, writer: &mut W, result: &ScanResult) -> io::Result<()> {
-        if result.files.is_empty() {
+        if result.is_empty() {
             writeln!(writer, "{}", "No TODO items found.".dimmed())?;
             return Ok(());
         }
@@ -140,7 +140,7 @@ impl Printer {
         // Group items by tag
         let mut by_tag: HashMap<String, Vec<(PathBuf, TodoItem)>> = HashMap::new();
 
-        for (path, items) in &result.files {
+        for (path, items) in &result.files_map {
             for item in items {
                 by_tag
                     .entry(item.tag.clone())
@@ -292,7 +292,7 @@ impl Printer {
 
     /// Print results in flat format
     fn print_flat<W: Write>(&self, writer: &mut W, result: &ScanResult) -> io::Result<()> {
-        if result.files.is_empty() {
+        if result.is_empty() {
             writeln!(writer, "{}", "No TODO items found.".dimmed())?;
             return Ok(());
         }
@@ -350,8 +350,8 @@ impl Printer {
 
     /// Print results in JSON format
     fn print_json<W: Write>(&self, writer: &mut W, result: &ScanResult) -> io::Result<()> {
-        let json_output = JsonOutput::from_scan_result(result, &self.options);
-        let json_str = serde_json::to_string_pretty(&json_output).map_err(io::Error::other)?;
+        let json_result = result.to_json_format();
+        let json_str = serde_json::to_string_pretty(&json_result).map_err(io::Error::other)?;
 
         writeln!(writer, "{}", json_str)?;
 
@@ -362,7 +362,9 @@ impl Printer {
     fn print_summary<W: Write>(&self, writer: &mut W, result: &ScanResult) -> io::Result<()> {
         let summary_line = format!(
             "Found {} TODO items in {} files ({} files scanned)",
-            result.total_count, result.files_with_todos, result.files_scanned
+            result.summary.total_count,
+            result.summary.files_with_todos,
+            result.summary.files_scanned
         );
 
         if self.options.colored {
@@ -372,8 +374,8 @@ impl Printer {
         }
 
         // Print tag breakdown
-        if !result.tag_counts.is_empty() {
-            let mut tags: Vec<_> = result.tag_counts.iter().collect();
+        if !result.summary.tag_counts.is_empty() {
+            let mut tags: Vec<_> = result.summary.tag_counts.iter().collect();
             tags.sort_by(|a, b| b.1.cmp(a.1));
 
             let breakdown: Vec<String> = tags
@@ -464,7 +466,7 @@ impl Printer {
             return tag.to_string();
         }
 
-        let color = Priority::from_tag(tag).to_color();
+        let color = priority_to_color(Priority::from_tag(tag));
         tag.color(color).bold().to_string()
     }
 }
@@ -565,10 +567,10 @@ impl JsonOutput {
         files.sort_by(|a, b| a.path.cmp(&b.path));
 
         let summary = JsonSummary {
-            total_count: result.total_count,
-            files_with_todos: result.files_with_todos,
-            files_scanned: result.files_scanned,
-            tag_counts: result.tag_counts.clone(),
+            total_count: result.summary.total_count,
+            files_with_todos: result.summary.files_with_todos,
+            files_scanned: result.summary.files_scanned,
+            tag_counts: result.summary.tag_counts.clone(),
         };
 
         Self { files, summary }
@@ -618,7 +620,6 @@ fn supports_hyperlinks() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::TodoItem;
 
     fn create_test_result() -> ScanResult {
         let mut result = ScanResult::new(PathBuf::from("/test"));
@@ -630,7 +631,7 @@ mod tests {
                     message: "Implement feature".to_string(),
                     line: 10,
                     column: 5,
-                    line_content: "// TODO: Implement feature".to_string(),
+                    line_content: Some("// TODO: Implement feature".to_string()),
                     author: None,
                     priority: Priority::Medium,
                 },
@@ -639,7 +640,7 @@ mod tests {
                     message: "Fix this bug".to_string(),
                     line: 20,
                     column: 5,
-                    line_content: "// FIXME: Fix this bug".to_string(),
+                    line_content: Some("// FIXME: Fix this bug".to_string()),
                     author: Some("john".to_string()),
                     priority: Priority::Critical,
                 },
@@ -866,7 +867,7 @@ mod tests {
                 message: "With author".to_string(),
                 line: 10,
                 column: 5,
-                line_content: "// TODO(alice): With author".to_string(),
+                line_content: Some("// TODO(alice): With author".to_string()),
                 author: Some("alice".to_string()),
                 priority: Priority::Medium,
             }],
@@ -943,7 +944,7 @@ mod tests {
                 message: "Test".to_string(),
                 line: 10,
                 column: 5,
-                line_content: "// TODO(bob): Test".to_string(),
+                line_content: Some("// TODO(bob): Test".to_string()),
                 author: Some("bob".to_string()),
                 priority: Priority::Medium,
             }],
@@ -969,7 +970,7 @@ mod tests {
                     message: "First".to_string(),
                     line: 1,
                     column: 1,
-                    line_content: "// TODO: First".to_string(),
+                    line_content: Some("// TODO: First".to_string()),
                     author: None,
                     priority: Priority::Medium,
                 },
@@ -978,7 +979,7 @@ mod tests {
                     message: "Second".to_string(),
                     line: 2,
                     column: 1,
-                    line_content: "// FIXME: Second".to_string(),
+                    line_content: Some("// FIXME: Second".to_string()),
                     author: None,
                     priority: Priority::Critical,
                 },
@@ -987,7 +988,7 @@ mod tests {
                     message: "Third".to_string(),
                     line: 3,
                     column: 1,
-                    line_content: "// NOTE: Third".to_string(),
+                    line_content: Some("// NOTE: Third".to_string()),
                     author: None,
                     priority: Priority::Low,
                 },
@@ -1022,7 +1023,7 @@ mod tests {
                 message: "In A".to_string(),
                 line: 1,
                 column: 1,
-                line_content: "// TODO: In A".to_string(),
+                line_content: Some("// TODO: In A".to_string()),
                 author: None,
                 priority: Priority::Medium,
             }],
@@ -1034,7 +1035,7 @@ mod tests {
                 message: "In B".to_string(),
                 line: 1,
                 column: 1,
-                line_content: "// FIXME: In B".to_string(),
+                line_content: Some("// FIXME: In B".to_string()),
                 author: None,
                 priority: Priority::Critical,
             }],
@@ -1103,7 +1104,7 @@ mod tests {
                     message: "Critical".to_string(),
                     line: 1,
                     column: 1,
-                    line_content: "// BUG: Critical".to_string(),
+                    line_content: Some("// BUG: Critical".to_string()),
                     author: None,
                     priority: Priority::Critical,
                 },
@@ -1112,7 +1113,7 @@ mod tests {
                     message: "Low".to_string(),
                     line: 2,
                     column: 1,
-                    line_content: "// NOTE: Low".to_string(),
+                    line_content: Some("// NOTE: Low".to_string()),
                     author: None,
                     priority: Priority::Low,
                 },
@@ -1139,7 +1140,7 @@ mod tests {
                     message: "First TODO".to_string(),
                     line: 1,
                     column: 1,
-                    line_content: "// TODO: First TODO".to_string(),
+                    line_content: Some("// TODO: First TODO".to_string()),
                     author: None,
                     priority: Priority::Medium,
                 },
@@ -1148,7 +1149,7 @@ mod tests {
                     message: "A FIXME".to_string(),
                     line: 2,
                     column: 1,
-                    line_content: "// FIXME: A FIXME".to_string(),
+                    line_content: Some("// FIXME: A FIXME".to_string()),
                     author: None,
                     priority: Priority::Critical,
                 },
@@ -1157,7 +1158,7 @@ mod tests {
                     message: "Second TODO".to_string(),
                     line: 3,
                     column: 1,
-                    line_content: "// TODO: Second TODO".to_string(),
+                    line_content: Some("// TODO: Second TODO".to_string()),
                     author: None,
                     priority: Priority::Medium,
                 },
@@ -1242,12 +1243,15 @@ mod tests {
         let options = PrintOptions::default();
         let json_output = JsonOutput::from_scan_result(&result, &options);
 
-        assert_eq!(json_output.summary.total_count, result.total_count);
+        assert_eq!(json_output.summary.total_count, result.summary.total_count);
         assert_eq!(
             json_output.summary.files_with_todos,
-            result.files_with_todos
+            result.summary.files_with_todos
         );
-        assert_eq!(json_output.summary.files_scanned, result.files_scanned);
+        assert_eq!(
+            json_output.summary.files_scanned,
+            result.summary.files_scanned
+        );
         assert!(!json_output.summary.tag_counts.is_empty());
     }
 
@@ -1261,7 +1265,7 @@ mod tests {
                 message: "Test".to_string(),
                 line: 1,
                 column: 1,
-                line_content: "// TODO: Test".to_string(),
+                line_content: Some("// TODO: Test".to_string()),
                 author: None,
                 priority: Priority::Medium,
             }],
@@ -1288,7 +1292,7 @@ mod tests {
                 message: "Test".to_string(),
                 line: 1,
                 column: 1,
-                line_content: "// TODO: Test".to_string(),
+                line_content: Some("// TODO: Test".to_string()),
                 author: None,
                 priority: Priority::Medium,
             }],
@@ -1341,7 +1345,7 @@ mod tests {
                 message: "Only item".to_string(),
                 line: 1,
                 column: 1,
-                line_content: "// TODO: Only item".to_string(),
+                line_content: Some("// TODO: Only item".to_string()),
                 author: None,
                 priority: Priority::Medium,
             }],
@@ -1373,7 +1377,7 @@ mod tests {
                 message: "With colored author".to_string(),
                 line: 1,
                 column: 1,
-                line_content: "// TODO(developer): With colored author".to_string(),
+                line_content: Some("// TODO(developer): With colored author".to_string()),
                 author: Some("developer".to_string()),
                 priority: Priority::Medium,
             }],

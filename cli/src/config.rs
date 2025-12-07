@@ -1,11 +1,12 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use todo_tree_core::tags;
 
-/// Default tags to search for if none are specified
-pub const DEFAULT_TAGS: &[&str] = &[
-    "TODO", "FIXME", "BUG", "HACK", "NOTE", "XXX", "WARN", "PERF",
-];
+/// Get default tags to search for if none are specified
+pub fn default_tags() -> Vec<String> {
+    tags::default_tag_names()
+}
 
 /// Configuration for the todo-tree tool
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -40,7 +41,7 @@ impl Config {
     /// Create a new configuration with default values
     pub fn new() -> Self {
         Self {
-            tags: DEFAULT_TAGS.iter().map(|s| s.to_string()).collect(),
+            tags: default_tags(),
             include: Vec::new(),
             exclude: Vec::new(),
             json: false,

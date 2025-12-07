@@ -21,7 +21,7 @@ impl OutputFormatter {
         output.push_str(&Self::format_todos_header(result));
 
         // Files with their items
-        for file in &result.files {
+        for file in &result.get_files() {
             output.push_str(&Self::format_file_section(file));
         }
 
@@ -190,8 +190,10 @@ impl OutputFormatter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{FileResult, Summary, TodoItem};
+    use crate::types::FileResult;
     use std::collections::HashMap;
+    use todo_tree_core::Summary;
+    use todo_tree_core::TodoItem;
 
     fn create_test_scan_result() -> ScanResult {
         let mut tag_counts = HashMap::new();

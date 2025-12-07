@@ -13,6 +13,7 @@ keywords = ["zed", "extension", "todo", "todo-tree", "productivity"]
 crate-type = ["cdylib"]
 
 [dependencies]
+todo-tree-core = { path = "../../core" }
 zed_extension_api = "0.7.0"
 serde = { version = "1", features = ["derive"] }
 

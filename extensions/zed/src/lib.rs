@@ -54,8 +54,9 @@ mod tests {
     use crate::cli::{CliError, build_scan_args, parse_output, process_command_output};
     use crate::formatter::OutputFormatter;
     use crate::slash_commands::{build_stats_output, build_tag_completions, build_todos_output};
-    use crate::types::{DEFAULT_TAGS, FileResult, Priority, ScanResult, Summary, TodoItem};
+    use crate::types::{DEFAULT_TAGS, FileResult, Priority, ScanResult};
     use std::collections::HashMap;
+    use todo_tree_core::{Summary, TodoItem};
     use zed_extension_api::Extension;
 
     #[test]
@@ -229,7 +230,8 @@ mod tests {
                     priority: "Medium".to_string(),
                     author: None,
                 }],
-            }],
+            }]
+            .into(),
             summary: Summary {
                 total_count: 1,
                 files_with_todos: 1,
@@ -324,7 +326,8 @@ mod tests {
                         author: None,
                     },
                 ],
-            }],
+            }]
+            .into(),
             summary: Summary {
                 total_count: 3,
                 files_with_todos: 1,
@@ -403,7 +406,7 @@ mod tests {
         tag_counts.insert("TODO".to_string(), 50);
 
         let result = ScanResult {
-            files,
+            files: Some(files),
             summary: Summary {
                 total_count: 50,
                 files_with_todos: 10,
@@ -479,7 +482,7 @@ mod tests {
     #[test]
     fn test_scan_result_is_empty_consistency() {
         let empty = ScanResult {
-            files: vec![],
+            files: vec![].into(),
             summary: Summary {
                 total_count: 0,
                 files_with_todos: 0,
@@ -493,7 +496,8 @@ mod tests {
             files: vec![FileResult {
                 path: "test.rs".to_string(),
                 items: vec![],
-            }],
+            }]
+            .into(),
             summary: Summary {
                 total_count: 0,
                 files_with_todos: 1,
@@ -509,7 +513,7 @@ mod tests {
         let test_cases = vec![
             (
                 ScanResult {
-                    files: vec![],
+                    files: vec![].into(),
                     summary: Summary {
                         total_count: 0,
                         files_with_todos: 0,
@@ -531,7 +535,8 @@ mod tests {
                             priority: "Low".to_string(),
                             author: None,
                         }],
-                    }],
+                    }]
+                    .into(),
                     summary: Summary {
                         total_count: 1,
                         files_with_todos: 1,

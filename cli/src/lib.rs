@@ -4,12 +4,14 @@ pub mod parser;
 pub mod printer;
 pub mod scanner;
 
+pub use todo_tree_core::{Priority, ScanResult, Summary, TodoItem};
+
 use anyhow::Result;
 use cli::{Cli, Commands, ConfigFormat, ScanArgs, SortOrder};
 use config::Config;
-use parser::TodoParser;
+use parser::{TodoParser, priority_to_color};
 use printer::{OutputFormat, PrintOptions, Printer};
-use scanner::{ScanOptions, ScanResult, Scanner};
+use scanner::{ScanOptions, Scanner};
 use std::path::PathBuf;
 
 /// Main entry point for the CLI application
@@ -189,7 +191,7 @@ fn cmd_tags(args: cli::TagsArgs, global: &cli::GlobalOptions) -> Result<()> {
     }
 
     if args.reset {
-        config.tags = config::DEFAULT_TAGS.iter().map(|s| s.to_string()).collect();
+        config.tags = config::default_tags();
         save_config(&config)?;
         println!("Tags reset to defaults");
         return Ok(());
@@ -199,7 +201,7 @@ fn cmd_tags(args: cli::TagsArgs, global: &cli::GlobalOptions) -> Result<()> {
     if args.json {
         let json = serde_json::json!({
             "tags": config.tags,
-            "default_tags": config::DEFAULT_TAGS,
+            "default_tags": config::default_tags(),
         });
         println!("{}", serde_json::to_string_pretty(&json)?);
     } else {
@@ -209,7 +211,7 @@ fn cmd_tags(args: cli::TagsArgs, global: &cli::GlobalOptions) -> Result<()> {
             if global.no_color {
                 println!("  - {}", tag);
             } else {
-                let color = parser::Priority::from_tag(tag).to_color();
+                let color = priority_to_color(Priority::from_tag(tag));
                 println!("  - {}", tag.color(color));
             }
         }
@@ -268,12 +270,12 @@ fn cmd_stats(args: cli::StatsArgs, global: &cli::GlobalOptions) -> Result<()> {
 
     if args.json {
         let stats = serde_json::json!({
-            "total_items": result.total_count,
-            "files_with_todos": result.files_with_todos,
-            "files_scanned": result.files_scanned,
-            "tag_counts": result.tag_counts,
-            "items_per_file": if result.files_with_todos > 0 {
-                result.total_count as f64 / result.files_with_todos as f64
+            "total_items": result.summary.total_count,
+            "files_with_todos": result.summary.files_with_todos,
+            "files_scanned": result.summary.files_scanned,
+            "tag_counts": result.summary.tag_counts,
+            "items_per_file": if result.summary.files_with_todos > 0 {
+                result.summary.total_count as f64 / result.summary.files_with_todos as f64
             } else {
                 0.0
             },
@@ -284,24 +286,24 @@ fn cmd_stats(args: cli::StatsArgs, global: &cli::GlobalOptions) -> Result<()> {
 
         println!("{}", "TODO Statistics".bold().underline());
         println!();
-        println!("  Total items:        {}", result.total_count);
-        println!("  Files with TODOs:   {}", result.files_with_todos);
-        println!("  Files scanned:      {}", result.files_scanned);
+        println!("  Total items:        {}", result.summary.total_count);
+        println!("  Files with TODOs:   {}", result.summary.files_with_todos);
+        println!("  Files scanned:      {}", result.summary.files_scanned);
 
-        if result.files_with_todos > 0 {
-            let avg = result.total_count as f64 / result.files_with_todos as f64;
+        if result.summary.files_with_todos > 0 {
+            let avg = result.summary.total_count as f64 / result.summary.files_with_todos as f64;
             println!("  Avg items per file: {:.2}", avg);
         }
 
         println!();
         println!("{}", "By Tag:".bold());
 
-        let mut tags: Vec<_> = result.tag_counts.iter().collect();
+        let mut tags: Vec<_> = result.summary.tag_counts.iter().collect();
         tags.sort_by(|a, b| b.1.cmp(a.1));
 
         for (tag, count) in tags {
-            let percentage = if result.total_count > 0 {
-                (*count as f64 / result.total_count as f64) * 100.0
+            let percentage = if result.summary.total_count > 0 {
+                (*count as f64 / result.summary.total_count as f64) * 100.0
             } else {
                 0.0
             };
@@ -313,7 +315,7 @@ fn cmd_stats(args: cli::StatsArgs, global: &cli::GlobalOptions) -> Result<()> {
             if global.no_color {
                 println!("  {:<8} {:>4} ({:>5.1}%) {}", tag, count, percentage, bar);
             } else {
-                let color = parser::Priority::from_tag(tag).to_color();
+                let color = priority_to_color(Priority::from_tag(tag));
                 println!(
                     "  {:<8} {:>4} ({:>5.1}%) {}",
                     tag.color(color),
@@ -372,13 +374,13 @@ fn sort_results(result: &mut ScanResult, sort: SortOrder) {
 
         SortOrder::Line => {
             // Sort items within each file by line number
-            for items in result.files.values_mut() {
+            for items in result.files_map.values_mut() {
                 items.sort_by_key(|item| item.line);
             }
         }
         SortOrder::Priority => {
             // Sort items within each file by priority
-            for items in result.files.values_mut() {
+            for items in result.files_map.values_mut() {
                 items.sort_by_key(|item| std::cmp::Reverse(item.priority));
             }
         }
@@ -445,8 +447,8 @@ fn temp_fix() {}
 
         let result = scanner.scan(temp_dir.path()).unwrap();
 
-        assert!(result.total_count >= 5);
-        assert!(result.files_with_todos >= 2);
+        assert!(result.summary.total_count >= 5);
+        assert!(result.summary.files_with_todos >= 2);
     }
 
     #[test]
@@ -491,7 +493,7 @@ fn temp_fix() {}
         sort_results(&mut result, SortOrder::Priority);
 
         // Check that items are sorted by priority within files
-        for items in result.files.values() {
+        for items in result.files_map.values() {
             for window in items.windows(2) {
                 assert!(window[0].priority >= window[1].priority);
             }
@@ -512,7 +514,7 @@ fn temp_fix() {}
         // Sort by file should not panic
         sort_results(&mut result, SortOrder::File);
 
-        assert!(result.total_count >= 1);
+        assert!(result.summary.total_count >= 1);
     }
 
     #[test]
@@ -538,7 +540,7 @@ fn main() {}
         sort_results(&mut result, SortOrder::Line);
 
         // Check that items are sorted by line number within files
-        for items in result.files.values() {
+        for items in result.files_map.values() {
             for window in items.windows(2) {
                 assert!(window[0].line <= window[1].line);
             }

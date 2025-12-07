@@ -1051,6 +1051,15 @@ dependencies = [
  "serde_yaml",
  "serial_test",
  "tempfile",
+ "todo-tree-core",
+]
+
+[[package]]
+name = "todo-tree-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1405,6 +1414,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "todo-tree-core",
  "zed_extension_api",
 ]
 

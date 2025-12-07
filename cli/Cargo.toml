@@ -25,6 +25,7 @@ name = "tt"
 path = "src/bin/tt.rs"
 
 [dependencies]
+todo-tree-core = { path = "../core" }
 clap = { version = "4.4", features = ["derive", "env"] }
 regex = "1.10"
 ignore = "0.4"

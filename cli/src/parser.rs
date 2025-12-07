@@ -1,62 +1,15 @@
 use colored::Color;
 use regex::{Regex, RegexBuilder};
-use serde::{Deserialize, Serialize};
 use std::path::Path;
+use todo_tree_core::{Priority, TodoItem};
 
-/// Represents a found TODO item in the source code
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct TodoItem {
-    /// The tag that was matched (e.g., "TODO", "FIXME")
-    pub tag: String,
-
-    /// The message following the tag
-    pub message: String,
-
-    /// Line number where the tag was found (1-indexed)
-    pub line: usize,
-
-    /// Column number where the tag starts (1-indexed)
-    pub column: usize,
-
-    /// The full line content
-    pub line_content: String,
-
-    /// Optional author/assignee if specified (e.g., TODO(john): ...)
-    pub author: Option<String>,
-
-    /// Priority level inferred from tag type
-    pub priority: Priority,
-}
-
-/// Priority levels for different tag types
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Priority {
-    Low,
-    Medium,
-    High,
-    Critical,
-}
-
-impl Priority {
-    /// Infer priority from tag name
-    pub fn from_tag(tag: &str) -> Self {
-        match tag.to_uppercase().as_str() {
-            "BUG" | "FIXME" | "XXX" => Priority::Critical,
-            "HACK" | "WARN" | "WARNING" => Priority::High,
-            "TODO" | "PERF" => Priority::Medium,
-            "NOTE" | "INFO" | "IDEA" => Priority::Low,
-            _ => Priority::Medium,
-        }
-    }
-
-    /// Get the color associated with this priority level
-    pub fn to_color(self) -> Color {
-        match self {
-            Priority::Critical => Color::Red,
-            Priority::High => Color::Yellow,
-            Priority::Medium => Color::Cyan,
-            Priority::Low => Color::Green,
-        }
+/// Get the color associated with a priority level
+pub fn priority_to_color(priority: Priority) -> Color {
+    match priority {
+        Priority::Critical => Color::Red,
+        Priority::High => Color::Yellow,
+        Priority::Medium => Color::Cyan,
+        Priority::Low => Color::Green,
     }
 }
 
@@ -151,7 +104,7 @@ impl TodoParser {
                 message,
                 line: line_number,
                 column,
-                line_content: line.to_string(),
+                line_content: Some(line.to_string()),
                 author,
                 priority,
             });
@@ -312,10 +265,10 @@ fn main() {}
     #[test]
     fn test_priority_to_color() {
         // Test all priority levels have a color
-        assert_eq!(Priority::Critical.to_color(), Color::Red);
-        assert_eq!(Priority::High.to_color(), Color::Yellow);
-        assert_eq!(Priority::Medium.to_color(), Color::Cyan);
-        assert_eq!(Priority::Low.to_color(), Color::Green);
+        assert_eq!(priority_to_color(Priority::Critical), Color::Red);
+        assert_eq!(priority_to_color(Priority::High), Color::Yellow);
+        assert_eq!(priority_to_color(Priority::Medium), Color::Cyan);
+        assert_eq!(priority_to_color(Priority::Low), Color::Green);
     }
 
     #[test]
@@ -399,7 +352,7 @@ fn main() {
             message: "Test".to_string(),
             line: 1,
             column: 1,
-            line_content: "// TODO: Test".to_string(),
+            line_content: Some("// TODO: Test".to_string()),
             author: None,
             priority: Priority::Medium,
         };
@@ -409,7 +362,7 @@ fn main() {
             message: "Test".to_string(),
             line: 1,
             column: 1,
-            line_content: "// TODO: Test".to_string(),
+            line_content: Some("// TODO: Test".to_string()),
             author: None,
             priority: Priority::Medium,
         };

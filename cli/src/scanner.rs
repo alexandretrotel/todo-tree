@@ -1,100 +1,9 @@
-use crate::parser::{TodoItem, TodoParser};
+use crate::parser::TodoParser;
 use anyhow::{Context, Result};
 use ignore::WalkBuilder;
 use ignore::overrides::OverrideBuilder;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-
-/// Result of scanning a directory for TODO items
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScanResult {
-    /// Map of file paths to their TODO items
-    pub files: HashMap<PathBuf, Vec<TodoItem>>,
-
-    /// Total number of TODO items found
-    pub total_count: usize,
-
-    /// Number of files scanned
-    pub files_scanned: usize,
-
-    /// Number of files with TODO items
-    pub files_with_todos: usize,
-
-    /// Count by tag type
-    pub tag_counts: HashMap<String, usize>,
-
-    /// Root directory that was scanned
-    pub root: PathBuf,
-}
-
-impl ScanResult {
-    /// Create a new empty scan result
-    pub fn new(root: PathBuf) -> Self {
-        Self {
-            files: HashMap::new(),
-            total_count: 0,
-            files_scanned: 0,
-            files_with_todos: 0,
-            tag_counts: HashMap::new(),
-            root,
-        }
-    }
-
-    /// Add TODO items for a file
-    pub fn add_file(&mut self, path: PathBuf, items: Vec<TodoItem>) {
-        self.files_scanned += 1;
-
-        if !items.is_empty() {
-            self.files_with_todos += 1;
-            self.total_count += items.len();
-
-            for item in &items {
-                *self.tag_counts.entry(item.tag.clone()).or_insert(0) += 1;
-            }
-
-            self.files.insert(path, items);
-        }
-    }
-
-    /// Get all TODO items as a flat list
-    pub fn all_items(&self) -> Vec<(PathBuf, TodoItem)> {
-        let mut items = Vec::new();
-        for (path, file_items) in &self.files {
-            for item in file_items {
-                items.push((path.clone(), item.clone()));
-            }
-        }
-        items
-    }
-
-    /// Get files sorted by path
-    pub fn sorted_files(&self) -> Vec<(&PathBuf, &Vec<TodoItem>)> {
-        let mut files: Vec<_> = self.files.iter().collect();
-        files.sort_by(|a, b| a.0.cmp(b.0));
-        files
-    }
-
-    /// Filter items by tag
-    pub fn filter_by_tag(&self, tag: &str) -> ScanResult {
-        let mut result = ScanResult::new(self.root.clone());
-        result.files_scanned = self.files_scanned;
-
-        for (path, items) in &self.files {
-            let filtered: Vec<TodoItem> = items
-                .iter()
-                .filter(|item| item.tag.eq_ignore_ascii_case(tag))
-                .cloned()
-                .collect();
-
-            if !filtered.is_empty() {
-                result.add_file(path.clone(), filtered);
-            }
-        }
-
-        result
-    }
-}
+use std::path::Path;
+use todo_tree_core::{ScanResult, TodoItem};
 
 /// Options for scanning
 #[derive(Debug, Clone)]
@@ -225,7 +134,7 @@ impl Scanner {
                         }
                         Err(_) => {
                             // Skip files that can't be read (binary files, permission errors, etc.)
-                            result.files_scanned += 1;
+                            result.summary.files_scanned += 1;
                         }
                     }
                 }
@@ -279,8 +188,8 @@ mod tests {
 
         let result = scanner.scan(temp_dir.path()).unwrap();
 
-        assert_eq!(result.total_count, 0);
-        assert_eq!(result.files_with_todos, 0);
+        assert_eq!(result.summary.total_count, 0);
+        assert_eq!(result.summary.files_with_todos, 0);
     }
 
     #[test]
@@ -303,10 +212,10 @@ fn main() {
 
         let result = scanner.scan(temp_dir.path()).unwrap();
 
-        assert_eq!(result.total_count, 2);
-        assert_eq!(result.files_with_todos, 1);
-        assert_eq!(result.tag_counts.get("TODO"), Some(&1));
-        assert_eq!(result.tag_counts.get("FIXME"), Some(&1));
+        assert_eq!(result.summary.total_count, 2);
+        assert_eq!(result.summary.files_with_todos, 1);
+        assert_eq!(result.summary.tag_counts.get("TODO"), Some(&1));
+        assert_eq!(result.summary.tag_counts.get("FIXME"), Some(&1));
     }
 
     #[test]
@@ -322,8 +231,8 @@ fn main() {
 
         let result = scanner.scan(temp_dir.path()).unwrap();
 
-        assert_eq!(result.total_count, 2);
-        assert_eq!(result.files_with_todos, 2);
+        assert_eq!(result.summary.total_count, 2);
+        assert_eq!(result.summary.files_with_todos, 2);
     }
 
     #[test]
@@ -339,8 +248,8 @@ fn main() {
 
         let result = scanner.scan(temp_dir.path()).unwrap();
 
-        assert_eq!(result.total_count, 3);
-        assert_eq!(result.files_with_todos, 3);
+        assert_eq!(result.summary.total_count, 3);
+        assert_eq!(result.summary.files_with_todos, 3);
     }
 
     #[test]
@@ -367,7 +276,7 @@ fn main() {
         let result = scanner.scan(temp_dir.path()).unwrap();
 
         // Should only find the TODO in included.rs
-        assert_eq!(result.total_count, 1);
+        assert_eq!(result.summary.total_count, 1);
     }
 
     #[test]
@@ -391,8 +300,8 @@ fn main() {
         let result = scanner.scan(temp_dir.path()).unwrap();
         let filtered = result.filter_by_tag("TODO");
 
-        assert_eq!(filtered.total_count, 2);
-        assert_eq!(filtered.tag_counts.get("TODO"), Some(&2));
+        assert_eq!(filtered.summary.total_count, 2);
+        assert_eq!(filtered.summary.tag_counts.get("TODO"), Some(&2));
     }
 
     #[test]
@@ -429,7 +338,7 @@ fn main() {
         let result = scanner.scan(temp_dir.path()).unwrap();
 
         // Should find level1 and level2, but not level3
-        assert_eq!(result.total_count, 2);
+        assert_eq!(result.summary.total_count, 2);
     }
 
     #[test]
@@ -444,7 +353,7 @@ fn main() {
         // Without hidden option
         let scanner = Scanner::new(parser.clone(), ScanOptions::default());
         let result = scanner.scan(temp_dir.path()).unwrap();
-        assert_eq!(result.total_count, 1);
+        assert_eq!(result.summary.total_count, 1);
 
         // With hidden option
         let options = ScanOptions {
@@ -454,7 +363,7 @@ fn main() {
         let parser = TodoParser::new(&default_tags(), false);
         let scanner = Scanner::new(parser, options);
         let result = scanner.scan(temp_dir.path()).unwrap();
-        assert_eq!(result.total_count, 2);
+        assert_eq!(result.summary.total_count, 2);
     }
 
     #[test]
@@ -475,7 +384,7 @@ fn main() {
         let result = scanner.scan(temp_dir.path()).unwrap();
 
         // Should only find the Rust file
-        assert_eq!(result.total_count, 1);
+        assert_eq!(result.summary.total_count, 1);
     }
 
     #[test]
@@ -499,7 +408,7 @@ fn main() {
         let result = scanner.scan(temp_dir.path()).unwrap();
 
         // Should only find main.rs, not target files
-        assert_eq!(result.total_count, 1);
+        assert_eq!(result.summary.total_count, 1);
     }
 
     #[test]
@@ -525,7 +434,7 @@ fn main() {
         let result = scanner.scan(temp_dir.path()).unwrap();
 
         // Should find src files but not tests
-        assert_eq!(result.total_count, 2);
+        assert_eq!(result.summary.total_count, 2);
     }
 
     #[test]
@@ -545,7 +454,7 @@ fn main() {
 
         let result = scanner.scan(temp_dir.path()).unwrap();
 
-        assert_eq!(result.total_count, 3);
+        assert_eq!(result.summary.total_count, 3);
     }
 
     #[test]
@@ -564,7 +473,7 @@ fn main() {
         let result = scanner.scan(temp_dir.path()).unwrap();
 
         // Should work without panicking
-        assert!(result.total_count >= 1);
+        assert!(result.summary.total_count >= 1);
     }
 
     #[test]
@@ -605,7 +514,7 @@ fn main() {
         let result = scanner.scan(temp_dir.path()).unwrap();
 
         // Should find the text file TODO
-        assert!(result.total_count >= 1);
+        assert!(result.summary.total_count >= 1);
     }
 
     #[test]
@@ -632,7 +541,7 @@ fn main() {
         let result = scanner.scan(temp_dir.path()).unwrap();
 
         // Should find both files when gitignore is not respected
-        assert_eq!(result.total_count, 2);
+        assert_eq!(result.summary.total_count, 2);
     }
 
     #[test]
@@ -640,12 +549,12 @@ fn main() {
         let root = PathBuf::from("/test/root");
         let result = ScanResult::new(root.clone());
 
-        assert_eq!(result.root, root);
-        assert_eq!(result.total_count, 0);
-        assert_eq!(result.files_scanned, 0);
-        assert_eq!(result.files_with_todos, 0);
-        assert!(result.files.is_empty());
-        assert!(result.tag_counts.is_empty());
+        assert_eq!(result.root, Some(root));
+        assert_eq!(result.summary.total_count, 0);
+        assert_eq!(result.summary.files_scanned, 0);
+        assert_eq!(result.summary.files_with_todos, 0);
+        assert!(result.is_empty());
+        assert!(result.summary.tag_counts.is_empty());
     }
 
     #[test]
@@ -687,7 +596,7 @@ fn main() {
         let result = scanner.scan(temp_dir.path()).unwrap();
 
         // Should still find the readable file
-        assert!(result.total_count >= 1);
+        assert!(result.summary.total_count >= 1);
     }
 
     #[test]
@@ -697,13 +606,15 @@ fn main() {
         // Adding empty items should increment files_scanned but not files_with_todos
         result.add_file(PathBuf::from("/test/empty.rs"), vec![]);
 
-        assert_eq!(result.files_scanned, 1);
-        assert_eq!(result.files_with_todos, 0);
-        assert_eq!(result.total_count, 0);
+        assert_eq!(result.summary.files_scanned, 1);
+        assert_eq!(result.summary.files_with_todos, 0);
+        assert_eq!(result.summary.total_count, 0);
     }
 
     #[test]
     fn test_scan_result_tag_counts() {
+        use todo_tree_core::{Priority, TodoItem};
+
         let mut result = ScanResult::new(PathBuf::from("/test"));
 
         result.add_file(
@@ -714,33 +625,33 @@ fn main() {
                     message: "First".to_string(),
                     line: 1,
                     column: 1,
-                    line_content: "// TODO: First".to_string(),
+                    line_content: Some("// TODO: First".to_string()),
                     author: None,
-                    priority: crate::parser::Priority::Medium,
+                    priority: Priority::Medium,
                 },
                 TodoItem {
                     tag: "TODO".to_string(),
                     message: "Second".to_string(),
                     line: 2,
                     column: 1,
-                    line_content: "// TODO: Second".to_string(),
+                    line_content: Some("// TODO: Second".to_string()),
                     author: None,
-                    priority: crate::parser::Priority::Medium,
+                    priority: Priority::Medium,
                 },
                 TodoItem {
                     tag: "FIXME".to_string(),
                     message: "Third".to_string(),
                     line: 3,
                     column: 1,
-                    line_content: "// FIXME: Third".to_string(),
+                    line_content: Some("// FIXME: Third".to_string()),
                     author: None,
-                    priority: crate::parser::Priority::Critical,
+                    priority: Priority::Critical,
                 },
             ],
         );
 
-        assert_eq!(result.tag_counts.get("TODO"), Some(&2));
-        assert_eq!(result.tag_counts.get("FIXME"), Some(&1));
+        assert_eq!(result.summary.tag_counts.get("TODO"), Some(&2));
+        assert_eq!(result.summary.tag_counts.get("FIXME"), Some(&1));
     }
 
     #[test]
@@ -767,6 +678,6 @@ fn main() {
         let result = scanner.scan(temp_dir.path()).unwrap();
 
         // Should find at least the original file
-        assert!(result.total_count >= 1);
+        assert!(result.summary.total_count >= 1);
     }
 }
