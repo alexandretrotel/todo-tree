@@ -7,7 +7,7 @@ A command-line tool to find and display TODO-style comments in your codebase, si
 ## Features
 
 - 🔍 **Recursive directory scanning** - Respects `.gitignore` rules automatically
-- 🏷️ **Configurable tags** - TODO, FIXME, BUG, NOTE, HACK, XXX, WARN, PERF (and custom tags)
+- 🏷️ **Configurable tags** - TODO, FIXME, BUG, NOTE, HACK, WARN, PERF, and more (and custom tags)
 - 🌳 **Tree view output** - Beautiful hierarchical display grouped by file
 - 📋 **Multiple output formats** - Tree, flat list, and JSON
 - ⚙️ **Configuration file support** - `.todorc` in JSON or YAML format
@@ -346,10 +346,10 @@ Tags are assigned priority levels for sorting and coloring:
 
 | Priority | Tags | Color |
 |----------|------|-------|
-| Critical | BUG, FIXME, XXX | Red |
-| High | HACK, WARN, WARNING | Yellow |
-| Medium | TODO, PERF | Cyan |
-| Low | NOTE, INFO, IDEA | Green |
+| Critical | BUG, FIXME, ERROR | Red |
+| High | HACK, WARN, WARNING, FIX | Yellow |
+| Medium | TODO, WIP, MAYBE | Cyan |
+| Low | NOTE, XXX, INFO, DOCS, PERF, TEST, IDEA | Green |
 
 ## Terminal Support
 
@@ -407,6 +407,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 - Inspired by the [Todo Tree](https://marketplace.visualstudio.com/items?itemName=Gruntfuggly.todo-tree) VS Code extension
 - Built with [clap](https://github.com/clap-rs/clap), [ignore](https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore), and [regex](https://github.com/rust-lang/regex)
+- Tree-sitter grammar for comment parsing from [tree-sitter-comment](https://github.com/stsewd/tree-sitter-comment)
+- Zed syntax highlighting inspired by [zed-comment](https://github.com/thedadams/zed-comment)
 
 ## License
 
