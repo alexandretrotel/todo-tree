@@ -408,7 +408,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - Inspired by the [Todo Tree](https://marketplace.visualstudio.com/items?itemName=Gruntfuggly.todo-tree) VS Code extension
 - Built with [clap](https://github.com/clap-rs/clap), [ignore](https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore), and [regex](https://github.com/rust-lang/regex)
 - Tree-sitter grammar for comment parsing from [tree-sitter-comment](https://github.com/stsewd/tree-sitter-comment)
-- Zed syntax highlighting inspired by [zed-comment](https://github.com/thedadams/zed-comment)
+- Zed syntax highlighting based on [zed-comment](https://github.com/thedadams/zed-comment) - we re-used the same `highlights.scm` structure with additional tags support. For more details about the original implementation (e.g., how to override theme colors for syntax highlighting), refer to the `zed-comment` extension
 
 ## License
 
