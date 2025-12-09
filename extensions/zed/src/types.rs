@@ -180,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_default_tags_count() {
-        assert_eq!(DEFAULT_TAGS.len(), 8);
+        assert_eq!(DEFAULT_TAGS.len(), 17);
     }
 
     #[test]

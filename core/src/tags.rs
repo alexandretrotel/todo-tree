@@ -13,11 +13,23 @@ pub struct TagDefinition {
 
 /// Default tag definitions used by todo-tree
 pub const DEFAULT_TAGS: &[TagDefinition] = &[
+    // Medium priority - Todo category
     TagDefinition {
         name: "TODO",
         description: "General TODO items",
         priority: Priority::Medium,
     },
+    TagDefinition {
+        name: "WIP",
+        description: "Work in progress",
+        priority: Priority::Medium,
+    },
+    TagDefinition {
+        name: "MAYBE",
+        description: "Potential future work",
+        priority: Priority::Medium,
+    },
+    // Critical priority - Error category
     TagDefinition {
         name: "FIXME",
         description: "Items that need fixing",
@@ -29,19 +41,15 @@ pub const DEFAULT_TAGS: &[TagDefinition] = &[
         priority: Priority::Critical,
     },
     TagDefinition {
-        name: "NOTE",
-        description: "Notes and documentation",
-        priority: Priority::Low,
+        name: "ERROR",
+        description: "Error handling needed",
+        priority: Priority::Critical,
     },
+    // High priority - Warn category
     TagDefinition {
         name: "HACK",
         description: "Hacky solutions",
         priority: Priority::High,
-    },
-    TagDefinition {
-        name: "XXX",
-        description: "Critical items requiring attention",
-        priority: Priority::Critical,
     },
     TagDefinition {
         name: "WARN",
@@ -49,9 +57,50 @@ pub const DEFAULT_TAGS: &[TagDefinition] = &[
         priority: Priority::High,
     },
     TagDefinition {
+        name: "WARNING",
+        description: "Warning about potential issues",
+        priority: Priority::High,
+    },
+    TagDefinition {
+        name: "FIX",
+        description: "Quick fix needed",
+        priority: Priority::High,
+    },
+    // Low priority - Info category
+    TagDefinition {
+        name: "NOTE",
+        description: "Notes and documentation",
+        priority: Priority::Low,
+    },
+    TagDefinition {
+        name: "XXX",
+        description: "Items requiring attention",
+        priority: Priority::Low,
+    },
+    TagDefinition {
+        name: "INFO",
+        description: "Informational notes",
+        priority: Priority::Low,
+    },
+    TagDefinition {
+        name: "DOCS",
+        description: "Documentation needed",
+        priority: Priority::Low,
+    },
+    TagDefinition {
         name: "PERF",
         description: "Performance issues",
-        priority: Priority::Medium,
+        priority: Priority::Low,
+    },
+    TagDefinition {
+        name: "TEST",
+        description: "Test-related items",
+        priority: Priority::Low,
+    },
+    TagDefinition {
+        name: "IDEA",
+        description: "Ideas for future consideration",
+        priority: Priority::Low,
     },
 ];
 
@@ -73,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_default_tags_count() {
-        assert_eq!(DEFAULT_TAGS.len(), 8);
+        assert_eq!(DEFAULT_TAGS.len(), 17);
     }
 
     #[test]
@@ -92,31 +141,31 @@ mod tests {
             .iter()
             .filter(|t| t.priority == Priority::Critical)
             .collect();
-        assert_eq!(critical_tags.len(), 3); // FIXME, BUG, XXX
+        assert_eq!(critical_tags.len(), 3); // FIXME, BUG, ERROR
 
         let high_tags: Vec<_> = DEFAULT_TAGS
             .iter()
             .filter(|t| t.priority == Priority::High)
             .collect();
-        assert_eq!(high_tags.len(), 2); // HACK, WARN
+        assert_eq!(high_tags.len(), 4); // HACK, WARN, WARNING, FIX
 
         let medium_tags: Vec<_> = DEFAULT_TAGS
             .iter()
             .filter(|t| t.priority == Priority::Medium)
             .collect();
-        assert_eq!(medium_tags.len(), 2); // TODO, PERF
+        assert_eq!(medium_tags.len(), 3); // TODO, WIP, MAYBE
 
         let low_tags: Vec<_> = DEFAULT_TAGS
             .iter()
             .filter(|t| t.priority == Priority::Low)
             .collect();
-        assert_eq!(low_tags.len(), 1); // NOTE
+        assert_eq!(low_tags.len(), 7); // NOTE, XXX, INFO, DOCS, PERF, TEST, IDEA
     }
 
     #[test]
     fn test_default_tag_names() {
         let names = default_tag_names();
-        assert_eq!(names.len(), 8);
+        assert_eq!(names.len(), 17);
         assert!(names.contains(&"TODO".to_string()));
         assert!(names.contains(&"FIXME".to_string()));
         assert!(names.contains(&"BUG".to_string()));

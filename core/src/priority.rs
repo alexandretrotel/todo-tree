@@ -13,10 +13,10 @@ impl Priority {
     /// Infer priority from tag name
     pub fn from_tag(tag: &str) -> Self {
         match tag.to_uppercase().as_str() {
-            "BUG" | "FIXME" | "XXX" => Priority::Critical,
-            "HACK" | "WARN" | "WARNING" => Priority::High,
-            "TODO" | "PERF" => Priority::Medium,
-            "NOTE" | "INFO" | "IDEA" => Priority::Low,
+            "BUG" | "FIXME" | "ERROR" => Priority::Critical,
+            "HACK" | "WARN" | "WARNING" | "FIX" => Priority::High,
+            "TODO" | "WIP" | "MAYBE" => Priority::Medium,
+            "NOTE" | "XXX" | "INFO" | "DOCS" | "PERF" | "TEST" | "IDEA" => Priority::Low,
             _ => Priority::Medium,
         }
     }
@@ -54,16 +54,26 @@ mod tests {
 
     #[test]
     fn test_priority_from_tag() {
+        // Critical
         assert_eq!(Priority::from_tag("BUG"), Priority::Critical);
         assert_eq!(Priority::from_tag("FIXME"), Priority::Critical);
-        assert_eq!(Priority::from_tag("XXX"), Priority::Critical);
+        assert_eq!(Priority::from_tag("ERROR"), Priority::Critical);
+        // High
         assert_eq!(Priority::from_tag("HACK"), Priority::High);
         assert_eq!(Priority::from_tag("WARN"), Priority::High);
         assert_eq!(Priority::from_tag("WARNING"), Priority::High);
+        assert_eq!(Priority::from_tag("FIX"), Priority::High);
+        // Medium
         assert_eq!(Priority::from_tag("TODO"), Priority::Medium);
-        assert_eq!(Priority::from_tag("PERF"), Priority::Medium);
+        assert_eq!(Priority::from_tag("WIP"), Priority::Medium);
+        assert_eq!(Priority::from_tag("MAYBE"), Priority::Medium);
+        // Low
         assert_eq!(Priority::from_tag("NOTE"), Priority::Low);
+        assert_eq!(Priority::from_tag("XXX"), Priority::Low);
         assert_eq!(Priority::from_tag("INFO"), Priority::Low);
+        assert_eq!(Priority::from_tag("DOCS"), Priority::Low);
+        assert_eq!(Priority::from_tag("PERF"), Priority::Low);
+        assert_eq!(Priority::from_tag("TEST"), Priority::Low);
         assert_eq!(Priority::from_tag("IDEA"), Priority::Low);
     }
 
@@ -74,7 +84,7 @@ mod tests {
         assert_eq!(Priority::from_tag("hack"), Priority::High);
         assert_eq!(Priority::from_tag("Hack"), Priority::High);
         assert_eq!(Priority::from_tag("warn"), Priority::High);
-        assert_eq!(Priority::from_tag("perf"), Priority::Medium);
+        assert_eq!(Priority::from_tag("wip"), Priority::Medium);
         assert_eq!(Priority::from_tag("info"), Priority::Low);
     }
 

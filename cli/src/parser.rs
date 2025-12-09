@@ -288,7 +288,7 @@ fn main() {}
         assert_eq!(Priority::from_tag("Hack"), Priority::High);
         assert_eq!(Priority::from_tag("warn"), Priority::High);
         assert_eq!(Priority::from_tag("WARNING"), Priority::High);
-        assert_eq!(Priority::from_tag("perf"), Priority::Medium);
+        assert_eq!(Priority::from_tag("perf"), Priority::Low);
         assert_eq!(Priority::from_tag("info"), Priority::Low);
         assert_eq!(Priority::from_tag("IDEA"), Priority::Low);
     }
@@ -342,7 +342,7 @@ fn main() {
         assert!(result.is_some());
         let item = result.unwrap();
         assert_eq!(item.tag, "XXX");
-        assert_eq!(item.priority, Priority::Critical);
+        assert_eq!(item.priority, Priority::Low);
     }
 
     #[test]
