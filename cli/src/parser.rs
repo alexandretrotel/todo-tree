@@ -48,12 +48,12 @@ impl TodoParser {
 
         // Build pattern that matches:
         // - Optional comment prefix (// # /* <!-- -- ; etc.)
-        // - Tag
+        // - Tag (with Unicode-aware word boundary to avoid matching inside words)
         // - Optional author in parentheses
         // - Optional colon
         // - Message
         let pattern = format!(
-            r"(?:^|[^a-zA-Z0-9_])({tags})(?:\(([^)]+)\))?[:\s]+(.*)$",
+            r"(?:^|[^\p{{L}}\p{{N}}_])({tags})(?:\(([^)]+)\))?[:\s]+(.*)$",
             tags = escaped_tags.join("|")
         );
 
@@ -375,5 +375,148 @@ fn main() {
         assert!(Priority::Critical > Priority::High);
         assert!(Priority::High > Priority::Medium);
         assert!(Priority::Medium > Priority::Low);
+    }
+
+    #[test]
+    fn test_no_match_todo_in_accented_word() {
+        // "método" (Spanish/Portuguese for "method") contains "todo" but should not match
+        let parser = TodoParser::new(&default_tags(), false);
+        let result = parser.parse_line("El método es importante", 1);
+        assert!(result.is_none(), "Should not match 'todo' inside 'método'");
+    }
+
+    #[test]
+    fn test_no_match_todos_spanish_portuguese() {
+        // "todos" means "all" in Spanish/Portuguese and should not match
+        let parser = TodoParser::new(&default_tags(), false);
+
+        let result1 = parser.parse_line("Para todos los usuarios", 1);
+        assert!(
+            result1.is_none(),
+            "Should not match 'todos' (Spanish for 'all')"
+        );
+
+        let result2 = parser.parse_line("Obrigado a todos vocês", 1);
+        assert!(
+            result2.is_none(),
+            "Should not match 'todos' (Portuguese for 'all')"
+        );
+    }
+
+    #[test]
+    fn test_no_match_todo_suffix_in_unicode() {
+        // Words ending in -todo with accented prefix should not match
+        let parser = TodoParser::new(&default_tags(), false);
+
+        let result = parser.parse_line("O método científico", 1);
+        assert!(
+            result.is_none(),
+            "Should not match '-todo' suffix after accented char"
+        );
+    }
+
+    #[test]
+    fn test_match_real_todo_after_unicode() {
+        // A real TODO after Unicode text should still match
+        let parser = TodoParser::new(&default_tags(), false);
+
+        let result = parser.parse_line("café // TODO: add milk", 1);
+        assert!(
+            result.is_some(),
+            "Should match real TODO after Unicode text"
+        );
+        assert_eq!(result.unwrap().message, "add milk");
+    }
+
+    #[test]
+    fn test_match_todo_with_unicode_in_message() {
+        // TODO with Unicode characters in the message should work
+        let parser = TodoParser::new(&default_tags(), false);
+
+        let result = parser.parse_line("// TODO: añadir más café", 1);
+        assert!(
+            result.is_some(),
+            "Should match TODO with Unicode in message"
+        );
+        assert_eq!(result.unwrap().message, "añadir más café");
+    }
+
+    #[test]
+    fn test_no_match_cyrillic_boundary() {
+        // Cyrillic characters should also be treated as word characters
+        let parser = TodoParser::new(&default_tags(), false);
+
+        // "методология" contains "todo" pattern but with Cyrillic prefix
+        let result = parser.parse_line("использовать методологию", 1);
+        assert!(
+            result.is_none(),
+            "Should not match TODO inside Cyrillic word"
+        );
+    }
+
+    #[test]
+    fn test_no_match_cjk_adjacent() {
+        // CJK characters adjacent to TODO should prevent matching
+        // (though CJK doesn't typically have this issue, good to test)
+        let parser = TodoParser::new(&default_tags(), false);
+
+        let result = parser.parse_line("完成TODO任务", 1);
+        // This actually should NOT match because 成 and 任 are letters
+        assert!(
+            result.is_none(),
+            "Should not match TODO between CJK characters"
+        );
+    }
+
+    #[test]
+    fn test_match_todo_after_cjk_with_space() {
+        // TODO with proper space boundary after CJK should match
+        let parser = TodoParser::new(&default_tags(), false);
+
+        let result = parser.parse_line("中文 TODO: task here", 1);
+        assert!(
+            result.is_some(),
+            "Should match TODO after space following CJK"
+        );
+        assert_eq!(result.unwrap().message, "task here");
+    }
+
+    #[test]
+    fn test_typst_document_false_positive() {
+        // Real-world case from the issue: typst document with "método"
+        let parser = TodoParser::new(&default_tags(), false);
+
+        let content = r#"
+O método científico é fundamental.
+Para todos os estudantes.
+El método de investigación.
+"#;
+        let items = parser.parse_content(content);
+        assert_eq!(
+            items.len(),
+            0,
+            "Should not find any false positive TODOs in typst content"
+        );
+    }
+
+    #[test]
+    fn test_mixed_real_and_false_todos() {
+        // Mix of real TODOs and false positives
+        let parser = TodoParser::new(&default_tags(), false);
+
+        let content = r#"
+// TODO: This is a real todo
+O método científico
+# FIXME: Another real one
+Para todos vocês
+"#;
+        let items = parser.parse_content(content);
+        assert_eq!(
+            items.len(),
+            2,
+            "Should only find real TODOs, not false positives"
+        );
+        assert_eq!(items[0].tag, "TODO");
+        assert_eq!(items[1].tag, "FIXME");
     }
 }
