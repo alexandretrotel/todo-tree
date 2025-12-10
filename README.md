@@ -66,7 +66,7 @@ tt scan ~/projects/todo-tree --tags FIXME
 
 {
   environment.systemPackages = [
-    todo-tree.packages.${pkgs.system}.todo-tree
+    todo-tree.packages.${pkgs.stdenv.hostPlatform.system}.todo-tree
   ];
 }
 ```
