@@ -14,6 +14,7 @@ A command-line tool to find and display TODO-style comments in your codebase, si
 - 🎨 **Colored output** - Priority-based coloring for different tag types
 - 🔗 **Clickable links** - Terminal hyperlinks to file locations (where supported)
 - 🧩 **Editor extensions** - Integrates with Zed via slash commands
+- 🤖 **GitHub Action** - Automatically scan PRs and post TODO summaries as comments
 
 ## Installation
 
@@ -216,6 +217,39 @@ The tool generates clickable hyperlinks (OSC 8) in supported terminals:
 Colors are automatically enabled when outputting to a terminal. Use `--no-color` or set the `NO_COLOR` environment variable to disable.
 
 ## Extensions
+
+### GitHub Action
+
+The [todo-tree-action](https://github.com/alexandretrotel/todo-tree-action) automatically scans your pull requests for TODO comments and posts a summary as a PR comment.
+
+```yaml
+# .github/workflows/todo-tree.yml
+name: Todo Tree
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  scan-todos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: alexandretrotel/todo-tree-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          changed-only: true  # Only scan files changed in the PR
+          new-only: true      # Only show NEW TODOs (not in base branch)
+```
+
+See the [todo-tree-action repository](https://github.com/alexandretrotel/todo-tree-action) for full documentation and configuration options.
 
 ### Zed Editor
 
