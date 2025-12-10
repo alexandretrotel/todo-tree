@@ -1,9 +1,7 @@
 name: Todo Tree Action Test
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
 
 permissions:
   contents: read
@@ -21,7 +19,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run Todo Tree Action
-        uses: alexandretrotel/todo-tree-action@v1
+        uses: alexandretrotel/todo-tree-action@v1.0.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           changed-only: true
