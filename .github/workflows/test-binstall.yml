@@ -1,8 +1,6 @@
 name: Test with todo-tree (binstall)
 
 on:
-  push:
-    branches: [main, staging]
   pull_request:
     branches: [main]
 
