@@ -16,6 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
+          submodules: true
           fetch-depth: 0
 
       - name: Run Todo Tree Action
