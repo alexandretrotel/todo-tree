@@ -40,3 +40,12 @@ glob = "0.3"
 [dev-dependencies]
 tempfile = "3.10"
 serial_test = "3.0"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/todo-tree-{ target }.tar.gz"
+pkg-fmt = "tgz"
+bin-dir = "todo-tree-{ target }/{ bin }{ binary-ext }"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-url = "{ repo }/releases/download/v{ version }/todo-tree-{ target }.zip"
+pkg-fmt = "zip"
