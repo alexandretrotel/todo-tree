@@ -3,7 +3,6 @@ resolver = "2"
 members = ["core", "cli", "extensions/zed"]
 
 [workspace.package]
-version = "0.2.0"
 edition = "2024"
 authors = ["Alexandre Trotel"]
 license-file = "LICENSE.md"
