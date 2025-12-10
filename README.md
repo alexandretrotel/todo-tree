@@ -25,7 +25,7 @@ cargo install todo-tree
 
 ### NixOS (Flakes)
 
-Try before you install:
+#### Try before you install
 
 ```bash
 # runs the default todo-tree command
@@ -40,7 +40,9 @@ nix shell github:alexandretrotel/todo-tree
 tt scan ~/projects/todo-tree --tags FIXME
 ```
 
-Install for your system:
+**Note:** If you haven't enabled the experimental Nix command and flakes features, you need to pass `--extra-experimental-features "nix-command flakes"` to the command. See the [Nix command wiki](https://nixos.wiki/wiki/Nix_command) for more details.
+
+#### Install for your system
 
 ```nix
 # flake.nix
