@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run Todo Tree Action
-        uses: alexandre/todo-tree-action@v1
+        uses: alexandretrotel/todo-tree-action@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           changed-only: true
