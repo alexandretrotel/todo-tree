@@ -1,0 +1,22 @@
+name: Test with todo-tree (binstall)
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install todo-tree
+        run: cargo binstall todo-tree -y
+
+      - name: Run todo-tree
+        run: todo-tree
