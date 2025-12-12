@@ -13,6 +13,36 @@ pub fn priority_to_color(priority: Priority) -> Color {
     }
 }
 
+#[cfg(not(doctest))]
+/// Default regex pattern for matching TODO-style tags in comments.
+///
+/// This pattern is inspired by the VSCode Todo Tree extension and matches tags
+/// that appear after common comment markers.
+///
+/// Pattern breakdown:
+/// - `(//|#|<!--|;|/\*|\*|--)`  - Comment markers for most languages
+/// - `\s*`                       - Optional whitespace after comment marker
+/// - `($TAGS)`                   - The tag to match (placeholder, replaced at runtime)
+/// - `(?:\(([^)]+)\))?`          - Optional author in parentheses
+/// - `[:\s]`                     - Colon or whitespace after tag
+/// - `(.*)`                      - The message
+///
+/// Supported comment syntaxes:
+///   //    - C, C++, Java, JavaScript, TypeScript, Rust, Go, Swift, Kotlin
+///   #     - Python, Ruby, Shell, YAML, TOML
+///   /*    - C-style block comments
+///   *     - Block comment continuation lines
+///   <!--  - HTML, XML, Markdown comments
+///   --    - SQL, Lua, Haskell, Ada
+///   ;     - Lisp, Clojure, Assembly, INI files
+///   %     - LaTeX, Erlang, MATLAB, Prolog
+///   """   - Python docstrings
+///   '''   - Python docstrings
+///   REM   - Batch files
+///   ::    - Batch files
+pub const DEFAULT_REGEX: &str =
+    r#"(//|#|<!--|;|/\*|\*|--|%|"""|'''|REM\s|::)\s*($TAGS)(?:\(([^)]+)\))?[:\s]+(.*)"#;
+
 /// Parser for detecting TODO-style tags in source code
 #[derive(Debug, Clone)]
 pub struct TodoParser {
@@ -24,46 +54,67 @@ pub struct TodoParser {
 
     /// Whether matching is case-sensitive
     case_sensitive: bool,
+
+    /// The regex pattern string (for ripgrep integration)
+    pattern_string: Option<String>,
 }
 
 impl TodoParser {
     /// Create a new parser with the given tags
     pub fn new(tags: &[String], case_sensitive: bool) -> Self {
-        let pattern = Self::build_pattern(tags, case_sensitive);
+        Self::with_regex(tags, case_sensitive, None)
+    }
+
+    /// Create a new parser with a custom regex pattern
+    ///
+    /// The pattern should contain `$TAGS` as a placeholder which will be replaced
+    /// with the alternation of escaped tags (e.g., `TODO|FIXME|BUG`).
+    ///
+    /// If no custom pattern is provided, the default pattern is used.
+    pub fn with_regex(tags: &[String], case_sensitive: bool, custom_regex: Option<&str>) -> Self {
+        let (pattern, pattern_string) = Self::build_pattern(tags, case_sensitive, custom_regex);
         Self {
             pattern,
             tags: tags.to_vec(),
             case_sensitive,
+            pattern_string,
         }
     }
 
     /// Build the regex pattern for matching tags
-    fn build_pattern(tags: &[String], case_sensitive: bool) -> Option<Regex> {
+    ///
+    /// Returns both the compiled regex and the pattern string (for ripgrep integration).
+    fn build_pattern(
+        tags: &[String],
+        case_sensitive: bool,
+        custom_regex: Option<&str>,
+    ) -> (Option<Regex>, Option<String>) {
         if tags.is_empty() {
-            return None;
+            return (None, None);
         }
 
         // Escape special regex characters in tags
         let escaped_tags: Vec<String> = tags.iter().map(|t| regex::escape(t)).collect();
+        let tags_alternation = escaped_tags.join("|");
 
-        // Build pattern that matches:
-        // - Optional comment prefix (// # /* <!-- -- ; etc.)
-        // - Tag (with Unicode-aware word boundary to avoid matching inside words)
-        // - Optional author in parentheses
-        // - Optional colon
-        // - Message
-        let pattern = format!(
-            r"(?:^|[^\p{{L}}\p{{N}}_])({tags})(?:\(([^)]+)\))?[:\s]+(.*)$",
-            tags = escaped_tags.join("|")
-        );
+        // Use custom regex or default
+        let base_pattern = custom_regex.unwrap_or(DEFAULT_REGEX);
 
-        Some(
-            RegexBuilder::new(&pattern)
-                .case_insensitive(!case_sensitive)
-                .multi_line(true)
-                .build()
-                .expect("Failed to build regex pattern"),
-        )
+        // Replace $TAGS placeholder with the actual tags alternation
+        let pattern_string = base_pattern.replace("$TAGS", &tags_alternation);
+
+        let regex = RegexBuilder::new(&pattern_string)
+            .case_insensitive(!case_sensitive)
+            .multi_line(true)
+            .build()
+            .expect("Failed to build regex pattern");
+
+        (Some(regex), Some(pattern_string))
+    }
+
+    /// Get the regex pattern string for ripgrep integration
+    pub fn pattern_string(&self) -> Option<&str> {
+        self.pattern_string.as_deref()
     }
 
     /// Parse a single line for TODO items
@@ -72,15 +123,19 @@ impl TodoParser {
 
         // Try to match the pattern
         if let Some(captures) = pattern.captures(line) {
-            let tag_match = captures.get(1)?;
-            let tag = tag_match.as_str().to_string();
-
-            let author = captures.get(2).map(|m| m.as_str().to_string());
-
+            // Default pattern capture groups:
+            // Group 1: Comment marker (e.g., //, #, /*, etc.)
+            // Group 2: Tag (e.g., TODO, FIXME, BUG)
+            // Group 3: Author (optional, in parentheses)
+            // Group 4: Message
+            let tag_match = captures.get(2)?;
+            let author = captures.get(3).map(|m| m.as_str().to_string());
             let message = captures
-                .get(3)
+                .get(4)
                 .map(|m| m.as_str().trim().to_string())
                 .unwrap_or_default();
+
+            let tag = tag_match.as_str().to_string();
 
             // Calculate column (1-indexed)
             let column = tag_match.start() + 1;
@@ -469,16 +524,21 @@ fn main() {
     }
 
     #[test]
-    fn test_match_todo_after_cjk_with_space() {
-        // TODO with proper space boundary after CJK should match
+    fn test_match_todo_after_cjk_with_comment() {
+        // TODO in a comment after CJK text should match
         let parser = TodoParser::new(&default_tags(), false);
 
-        let result = parser.parse_line("中文 TODO: task here", 1);
-        assert!(
-            result.is_some(),
-            "Should match TODO after space following CJK"
-        );
+        // With comment-only detection, bare "TODO:" doesn't match - needs comment marker
+        let result = parser.parse_line("中文 // TODO: task here", 1);
+        assert!(result.is_some(), "Should match TODO in comment after CJK");
         assert_eq!(result.unwrap().message, "task here");
+
+        // Without comment marker, should NOT match
+        let result2 = parser.parse_line("中文 TODO: task here", 1);
+        assert!(
+            result2.is_none(),
+            "Should NOT match TODO without comment marker"
+        );
     }
 
     #[test]
@@ -518,5 +578,230 @@ Para todos vocês
         );
         assert_eq!(items[0].tag, "TODO");
         assert_eq!(items[1].tag, "FIXME");
+    }
+
+    fn tags_with_error() -> Vec<String> {
+        vec![
+            "TODO".to_string(),
+            "FIXME".to_string(),
+            "BUG".to_string(),
+            "NOTE".to_string(),
+            "HACK".to_string(),
+            "ERROR".to_string(),
+        ]
+    }
+
+    #[test]
+    fn test_hash_comment_matches_like_vscode_extension() {
+        // With ripgrep-style matching (like VSCode Todo Tree extension),
+        // # is treated as a comment marker. This means markdown headings
+        // like "# Error Handling" will match if ERROR is a tag.
+        //
+        // This is intentional - users should exclude *.md files if they
+        // don't want to scan markdown headings. The VSCode extension
+        // works the same way.
+        let parser = TodoParser::new(&tags_with_error(), false);
+
+        // "# Error Handling" matches because # is a comment marker
+        // and "Error" is followed by whitespace
+        let result = parser.parse_line("# ERROR: something", 1);
+        assert!(result.is_some(), "Should match # ERROR: comment");
+        assert_eq!(result.unwrap().tag, "ERROR");
+
+        // Tags require a colon or whitespace separator after them
+        let result2 = parser.parse_line("# ErrorHandling", 1);
+        assert!(
+            result2.is_none(),
+            "Should not match without separator after tag"
+        );
+    }
+
+    #[test]
+    fn test_no_match_error_in_markdown_prose() {
+        // Prose containing "error" should NOT match
+        let parser = TodoParser::new(&tags_with_error(), false);
+
+        let result = parser.parse_line("Use error classes for granular error handling", 1);
+        assert!(result.is_none(), "Should not match 'error' in prose text");
+
+        let result2 = parser.parse_line("The error message with status info", 1);
+        assert!(
+            result2.is_none(),
+            "Should not match 'error' in prose describing error messages"
+        );
+    }
+
+    #[test]
+    fn test_no_match_error_in_code_block_content() {
+        // Code examples showing error usage should NOT match
+        let parser = TodoParser::new(&tags_with_error(), false);
+
+        let result = parser.parse_line("throw new Error('Something went wrong')", 1);
+        assert!(result.is_none(), "Should not match 'Error' in code example");
+
+        let result2 = parser.parse_line("catch (error) {", 1);
+        assert!(
+            result2.is_none(),
+            "Should not match 'error' in catch statement"
+        );
+    }
+
+    #[test]
+    fn test_match_real_error_comment() {
+        // Real ERROR comments should still match
+        let parser = TodoParser::new(&tags_with_error(), false);
+
+        let result = parser.parse_line("// ERROR: This needs to be fixed", 1);
+        assert!(result.is_some(), "Should match real ERROR comment");
+        assert_eq!(result.unwrap().tag, "ERROR");
+
+        let result2 = parser.parse_line("# ERROR: Handle this case", 1);
+        assert!(result2.is_some(), "Should match ERROR with # comment");
+        assert_eq!(result2.unwrap().tag, "ERROR");
+
+        let result3 = parser.parse_line("/* ERROR: Critical issue */", 1);
+        assert!(result3.is_some(), "Should match ERROR in block comment");
+        assert_eq!(result3.unwrap().tag, "ERROR");
+    }
+
+    #[test]
+    fn test_markdown_docs_with_ripgrep_style() {
+        // With ripgrep-style matching, # is a comment marker, so markdown
+        // headings with tags followed by separators will match.
+        //
+        // This matches VSCode Todo Tree extension behavior. Users should
+        // exclude markdown files or use custom regex if this is undesired.
+        let parser = TodoParser::new(&tags_with_error(), false);
+
+        let content = r#"
+# Error Handling
+
+Use error classes for granular error handling.
+
+## Error Classes
+
+The following error classes are available:
+
+- `FetchError`: Base error class
+- `NetworkError`: Network-related errors
+- `TimeoutError`: Request timeout errors
+
+### Custom Error Types
+
+You can create custom error types by extending the base class.
+
+The error message with status info helps debugging.
+
+```typescript
+class CustomError extends FetchError {
+  constructor(message: string) {
+    super(message);
+  }
+}
+```
+"#;
+        let items = parser.parse_content(content);
+        // With ripgrep-style, "# Error Handling" and "## Error Classes" match
+        // because # is a comment marker and ERROR tag is followed by space
+        assert!(
+            items.len() >= 2,
+            "Markdown headings with ERROR followed by space will match with ripgrep-style"
+        );
+    }
+
+    fn tags_with_test() -> Vec<String> {
+        vec![
+            "TODO".to_string(),
+            "FIXME".to_string(),
+            "TEST".to_string(),
+            "NOTE".to_string(),
+        ]
+    }
+
+    #[test]
+    fn test_no_match_json_script_keys() {
+        // JSON script keys like "test: ci" should NOT match
+        let parser = TodoParser::new(&tags_with_test(), false);
+
+        // These are from package.json scripts section
+        let result = parser.parse_line(r#"    "test: ci": "turbo run test","#, 1);
+        assert!(
+            result.is_none(),
+            "Should not match 'test' in JSON key '\"test: ci\"'"
+        );
+
+        let result2 = parser.parse_line(r#"    "test:ci": "turbo run test","#, 1);
+        assert!(
+            result2.is_none(),
+            "Should not match 'test' in JSON key '\"test:ci\"'"
+        );
+
+        let result3 = parser.parse_line(r#"    "test:coverage": "vitest --coverage","#, 1);
+        assert!(
+            result3.is_none(),
+            "Should not match 'test' in JSON key '\"test:coverage\"'"
+        );
+
+        let result4 = parser.parse_line(r#"    "test:watch": "vitest --watch","#, 1);
+        assert!(
+            result4.is_none(),
+            "Should not match 'test' in JSON key '\"test:watch\"'"
+        );
+    }
+
+    #[test]
+    fn test_no_match_json_various_patterns() {
+        let parser = TodoParser::new(&tags_with_test(), false);
+
+        // npm script naming conventions
+        let cases = vec![
+            r#""test:unit": "jest""#,
+            r#""test:e2e": "cypress run""#,
+            r#""test:lint": "eslint .""#,
+            r#"  "note:important": "value","#,
+            r#"{"test": "vitest"}"#,
+        ];
+
+        for case in cases {
+            let result = parser.parse_line(case, 1);
+            assert!(result.is_none(), "Should not match tag in JSON: {}", case);
+        }
+    }
+
+    #[test]
+    fn test_match_real_todo_in_json_comment() {
+        // Real TODO comments in JS files with JSON-like content should match
+        let parser = TodoParser::new(&tags_with_test(), false);
+
+        let result = parser.parse_line("// TODO: update package.json scripts", 1);
+        assert!(result.is_some(), "Should match real TODO comment");
+        assert_eq!(result.unwrap().tag, "TODO");
+    }
+
+    #[test]
+    fn test_package_json_comprehensive() {
+        // Full package.json content test
+        let parser = TodoParser::new(&tags_with_test(), false);
+
+        let content = r#"
+{
+  "name": "my-project",
+  "scripts": {
+    "build": "turbo run build",
+    "test": "vitest",
+    "test:ci": "turbo run test",
+    "test:coverage": "vitest --coverage",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest --watch",
+    "note:deploy": "echo 'deploy script'"
+  }
+}
+"#;
+        let items = parser.parse_content(content);
+        assert_eq!(
+            items.len(),
+            0,
+            "Should not find any false positive TODOs in package.json"
+        );
     }
 }
