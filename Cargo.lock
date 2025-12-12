@@ -1037,7 +1037,7 @@ dependencies = [
 
 [[package]]
 name = "todo-tree"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -1056,7 +1056,7 @@ dependencies = [
 
 [[package]]
 name = "todo-tree-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -1410,7 +1410,7 @@ dependencies = [
 
 [[package]]
 name = "zed-todo-tree"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "serde",
  "serde_json",
