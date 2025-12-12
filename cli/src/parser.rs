@@ -40,7 +40,8 @@ pub fn priority_to_color(priority: Priority) -> Color {
 ///   '''   - Python docstrings
 ///   REM   - Batch files
 ///   ::    - Batch files
-pub const DEFAULT_REGEX: &str = r#"(//|#|<!--|;|/\*|\*|--|%|"""|'''|REM\s|::)\s*($TAGS)(?:\(([^)]+)\))?[:\s]+(.*)"#;
+pub const DEFAULT_REGEX: &str =
+    r#"(//|#|<!--|;|/\*|\*|--|%|"""|'''|REM\s|::)\s*($TAGS)(?:\(([^)]+)\))?[:\s]+(.*)"#;
 
 /// Parser for detecting TODO-style tags in source code
 #[derive(Debug, Clone)]
@@ -529,10 +530,7 @@ fn main() {
 
         // With comment-only detection, bare "TODO:" doesn't match - needs comment marker
         let result = parser.parse_line("中文 // TODO: task here", 1);
-        assert!(
-            result.is_some(),
-            "Should match TODO in comment after CJK"
-        );
+        assert!(result.is_some(), "Should match TODO in comment after CJK");
         assert_eq!(result.unwrap().message, "task here");
 
         // Without comment marker, should NOT match
@@ -711,8 +709,6 @@ class CustomError extends FetchError {
         );
     }
 
-
-
     fn tags_with_test() -> Vec<String> {
         vec![
             "TODO".to_string(),
@@ -768,11 +764,7 @@ class CustomError extends FetchError {
 
         for case in cases {
             let result = parser.parse_line(case, 1);
-            assert!(
-                result.is_none(),
-                "Should not match tag in JSON: {}",
-                case
-            );
+            assert!(result.is_none(), "Should not match tag in JSON: {}", case);
         }
     }
 
