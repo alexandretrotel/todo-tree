@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Default scanning now requires uppercase tags with colon**: By default, only `TODO:` format matches, not `todo:` or `TODO ` (without colon). This significantly reduces false positives in real-world codebases.
 - **Case-sensitive matching is now the default**: Tags must be uppercase (TODO, FIXME, BUG) to match. Use `--ignore-case` to restore the old behavior.
-- **Removed `::` from default comment markers**: Prevents false positives in Go, Rust, and C++ code where `::` is used as a scope resolution operator (e.g., `std::io::Error` no longer matches the ERROR tag).
+- **Removed `::` from default comment markers**: Prevents false positives in Rust, C++, and other languages where `::` is used as a scope resolution operator (e.g., `std::io::Error` no longer matches the ERROR tag).
 
 ### ✨ Added
 
@@ -25,8 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🐛 Fixed
 
-- **False positive**: `std::io::Error` in Rust code no longer matches ERROR tag
-- **False positive**: `std::error` in C++ code no longer matches ERROR tag
+- **False positive**: `std::io::Error` in Rust/C++ code no longer matches ERROR tag
+- **False positive**: `std::error` in C++ namespace no longer matches ERROR tag
 - **False positive**: Variable names like `ERROR_CODE` no longer match ERROR tag
 - **False positive**: Prose like "this is an error" no longer matches ERROR tag
 - **False positive**: `Result<T, Error>` in Rust type definitions no longer matches ERROR tag
@@ -41,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🧪 Tests
 
 - Added test for Rust scope resolution operator (`std::io::Error`)
-- Added test for Go scope resolution
+- Added test for scope resolution with `::` operator
 - Added test for C++ namespace resolution  
 - Added tests for require-colon behavior
 - Added tests for case-sensitive default behavior

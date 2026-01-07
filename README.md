@@ -226,7 +226,7 @@ Or set these options in your `.todorc.json`:
 #### Why These Defaults?
 
 The strict defaults (uppercase + colon required) significantly reduce false positives:
-- Code like `std::io::Error` in Rust/Go won't match
+- Code like `std::io::Error` in Rust/C++ won't match
 - Variable names like `ERROR_CODE` won't match
 - Prose like "this is an error" won't match
 - Type definitions like `Result<T, Error>` won't match

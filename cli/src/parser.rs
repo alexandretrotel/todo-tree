@@ -41,7 +41,7 @@ pub fn priority_to_color(priority: Priority) -> Color {
 ///   REM   - Batch files
 ///
 /// Note: `::` was removed from default comment markers to prevent false positives
-/// in Go, Rust, and C++ code where `::` is used as a scope resolution operator
+/// in Rust, C++, and other languages where `::` is used as a scope resolution operator
 /// (e.g., `std::io::Error`).
 pub const DEFAULT_REGEX: &str =
     r#"(//|#|<!--|;|/\*|\*|--|%|"""|'''|REM\s)\s*($TAGS)(?:\(([^)]+)\))?:(.*)"#;
@@ -831,15 +831,15 @@ class CustomError extends FetchError {
     }
 
     #[test]
-    fn test_no_match_go_scope_resolution() {
+    fn test_no_match_scope_resolution_with_double_colon() {
         let parser = TodoParser::new(&tags_with_error(), true);
 
-        // Go code with :: - should NOT match
+        // Code with :: scope operator - should NOT match
         let result = parser.parse_line("BindAddress { source: std::io::Error },", 1);
-        assert!(result.is_none(), "Should not match ERROR in Go namespace");
+        assert!(result.is_none(), "Should not match ERROR in scope resolution");
 
         let result2 = parser.parse_line("fmt::Println(\"error\")", 1);
-        assert!(result2.is_none(), "Should not match in Go-style code");
+        assert!(result2.is_none(), "Should not match in code with :: operator");
     }
 
     #[test]
