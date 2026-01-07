@@ -218,7 +218,7 @@ Colors are automatically enabled when outputting to a terminal. Use `--no-color`
 
 ## Related Projects
 
-### 🔗 [todo-tree-action](https://github.com/alexandretrotel/todo-tree-action)
+### [todo-tree-action](https://github.com/alexandretrotel/todo-tree-action)
 
 A GitHub Action that automatically scans your pull requests for TODO comments and posts a summary as a PR comment. Features include:
 - Scan only changed files in PRs
@@ -226,7 +226,7 @@ A GitHub Action that automatically scans your pull requests for TODO comments an
 - Automatic PR comment with formatted results
 - Full configuration support
 
-### 🔗 [zed-todo-tree](https://github.com/alexandretrotel/zed-todo-tree)
+### [zed-todo-tree](https://github.com/alexandretrotel/zed-todo-tree)
 
 A Zed Editor extension that integrates TODO scanning directly into Zed Assistant using slash commands. Features include:
 - Scan TODOs via `/todo-tree` slash command
