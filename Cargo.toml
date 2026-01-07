@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["core", "cli", "extensions/zed"]
+members = ["core", "cli"]
 
 [workspace.package]
 edition = "2024"

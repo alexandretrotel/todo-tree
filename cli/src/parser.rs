@@ -24,7 +24,7 @@ pub fn priority_to_color(priority: Priority) -> Color {
 /// - `\s*`                       - Optional whitespace after comment marker
 /// - `($TAGS)`                   - The tag to match (placeholder, replaced at runtime)
 /// - `(?:\(([^)]+)\))?`          - Optional author in parentheses
-/// - `[:\s]`                     - Colon or whitespace after tag
+/// - `:`                         - Required colon after tag
 /// - `(.*)`                      - The message
 ///
 /// Supported comment syntaxes:
@@ -39,9 +39,12 @@ pub fn priority_to_color(priority: Priority) -> Color {
 ///   """   - Python docstrings
 ///   '''   - Python docstrings
 ///   REM   - Batch files
-///   ::    - Batch files
+///
+/// Note: `::` was removed from default comment markers to prevent false positives
+/// in Rust, C++, and other languages where `::` is used as a scope resolution operator
+/// (e.g., `std::io::Error`).
 pub const DEFAULT_REGEX: &str =
-    r#"(//|#|<!--|;|/\*|\*|--|%|"""|'''|REM\s|::)\s*($TAGS)(?:\(([^)]+)\))?[:\s]+(.*)"#;
+    r#"(//|#|<!--|;|/\*|\*|--|%|"""|'''|REM\s)\s*($TAGS)(?:\(([^)]+)\))?:(.*)"#;
 
 /// Parser for detecting TODO-style tags in source code
 #[derive(Debug, Clone)]
@@ -62,17 +65,18 @@ pub struct TodoParser {
 impl TodoParser {
     /// Create a new parser with the given tags
     pub fn new(tags: &[String], case_sensitive: bool) -> Self {
-        Self::with_regex(tags, case_sensitive, None)
+        Self::with_options(tags, case_sensitive, true, None)
     }
 
-    /// Create a new parser with a custom regex pattern
-    ///
-    /// The pattern should contain `$TAGS` as a placeholder which will be replaced
-    /// with the alternation of escaped tags (e.g., `TODO|FIXME|BUG`).
-    ///
-    /// If no custom pattern is provided, the default pattern is used.
-    pub fn with_regex(tags: &[String], case_sensitive: bool, custom_regex: Option<&str>) -> Self {
-        let (pattern, pattern_string) = Self::build_pattern(tags, case_sensitive, custom_regex);
+    /// Create a new parser with custom options
+    pub fn with_options(
+        tags: &[String],
+        case_sensitive: bool,
+        require_colon: bool,
+        custom_regex: Option<&str>,
+    ) -> Self {
+        let (pattern, pattern_string) =
+            Self::build_pattern(tags, case_sensitive, require_colon, custom_regex);
         Self {
             pattern,
             tags: tags.to_vec(),
@@ -81,12 +85,24 @@ impl TodoParser {
         }
     }
 
+    /// Create a new parser with a custom regex pattern (deprecated, use with_options)
+    ///
+    /// The pattern should contain `$TAGS` as a placeholder which will be replaced
+    /// with the alternation of escaped tags (e.g., `TODO|FIXME|BUG`).
+    ///
+    /// If no custom pattern is provided, the default pattern is used.
+    #[deprecated(since = "0.3.0", note = "Use with_options instead")]
+    pub fn with_regex(tags: &[String], case_sensitive: bool, custom_regex: Option<&str>) -> Self {
+        Self::with_options(tags, case_sensitive, true, custom_regex)
+    }
+
     /// Build the regex pattern for matching tags
     ///
     /// Returns both the compiled regex and the pattern string (for ripgrep integration).
     fn build_pattern(
         tags: &[String],
         case_sensitive: bool,
+        require_colon: bool,
         custom_regex: Option<&str>,
     ) -> (Option<Regex>, Option<String>) {
         if tags.is_empty() {
@@ -98,7 +114,12 @@ impl TodoParser {
         let tags_alternation = escaped_tags.join("|");
 
         // Use custom regex or default
-        let base_pattern = custom_regex.unwrap_or(DEFAULT_REGEX);
+        let mut base_pattern = custom_regex.unwrap_or(DEFAULT_REGEX).to_string();
+
+        // If custom regex is not provided and require_colon is false, allow space or colon
+        if custom_regex.is_none() && !require_colon {
+            base_pattern = base_pattern.replace(":(.*)", "[:\\s]+(.*)");
+        }
 
         // Replace $TAGS placeholder with the actual tags alternation
         let pattern_string = base_pattern.replace("$TAGS", &tags_alternation);
@@ -291,11 +312,22 @@ fn main() {}
 
     #[test]
     fn test_todo_without_colon() {
-        let parser = TodoParser::new(&default_tags(), false);
+        // With new defaults (require_colon=true), TODO without colon should NOT match
+        let parser = TodoParser::new(&default_tags(), true);
         let result = parser.parse_line("// TODO fix this", 1);
+        assert!(
+            result.is_none(),
+            "TODO without colon should not match with new defaults"
+        );
 
-        assert!(result.is_some());
-        let item = result.unwrap();
+        // But with require_colon=false, it SHOULD match
+        let parser_old_style = TodoParser::with_options(&default_tags(), true, false, None);
+        let result_old = parser_old_style.parse_line("// TODO fix this", 1);
+        assert!(
+            result_old.is_some(),
+            "TODO without colon should match when configured"
+        );
+        let item = result_old.unwrap();
         assert_eq!(item.tag, "TODO");
         assert_eq!(item.message, "fix this");
     }
@@ -666,12 +698,9 @@ Para todos vocês
 
     #[test]
     fn test_markdown_docs_with_ripgrep_style() {
-        // With ripgrep-style matching, # is a comment marker, so markdown
-        // headings with tags followed by separators will match.
-        //
-        // This matches VSCode Todo Tree extension behavior. Users should
-        // exclude markdown files or use custom regex if this is undesired.
-        let parser = TodoParser::new(&tags_with_error(), false);
+        // With new defaults (require_colon=true), markdown headings should NOT match
+        // because they don't have a colon after the tag
+        let parser = TodoParser::new(&tags_with_error(), true);
 
         let content = r#"
 # Error Handling
@@ -701,11 +730,19 @@ class CustomError extends FetchError {
 ```
 "#;
         let items = parser.parse_content(content);
-        // With ripgrep-style, "# Error Handling" and "## Error Classes" match
-        // because # is a comment marker and ERROR tag is followed by space
+        // With new defaults, markdown headings should NOT match (no colon)
+        assert_eq!(
+            items.len(),
+            0,
+            "Markdown headings without colon should not match with new defaults"
+        );
+
+        // But with require_colon=false and case_insensitive, they WOULD match
+        let parser_old_style = TodoParser::with_options(&tags_with_error(), false, false, None);
+        let items_old = parser_old_style.parse_content(content);
         assert!(
-            items.len() >= 2,
-            "Markdown headings with ERROR followed by space will match with ripgrep-style"
+            items_old.len() >= 2,
+            "Markdown headings match with old-style matching (no colon required)"
         );
     }
 
@@ -776,6 +813,263 @@ class CustomError extends FetchError {
         let result = parser.parse_line("// TODO: update package.json scripts", 1);
         assert!(result.is_some(), "Should match real TODO comment");
         assert_eq!(result.unwrap().tag, "TODO");
+    }
+
+    #[test]
+    fn test_no_match_rust_scope_resolution() {
+        let parser = TodoParser::new(&tags_with_error(), true);
+
+        // Rust code with :: scope operator - should NOT match
+        let result = parser.parse_line("BindAddress { source: std::io::Error },", 1);
+        assert!(result.is_none(), "Should not match Error in Rust namespace");
+
+        let result2 = parser.parse_line("use std::error::Error;", 1);
+        assert!(result2.is_none(), "Should not match error in use statement");
+
+        let result3 = parser.parse_line("Result<(), std::io::Error>", 1);
+        assert!(result3.is_none(), "Should not match Error in Result type");
+    }
+
+    #[test]
+    fn test_no_match_scope_resolution_with_double_colon() {
+        let parser = TodoParser::new(&tags_with_error(), true);
+
+        // Code with :: scope operator - should NOT match
+        let result = parser.parse_line("BindAddress { source: std::io::Error },", 1);
+        assert!(
+            result.is_none(),
+            "Should not match ERROR in scope resolution"
+        );
+
+        let result2 = parser.parse_line("fmt::Println(\"error\")", 1);
+        assert!(
+            result2.is_none(),
+            "Should not match in code with :: operator"
+        );
+    }
+
+    #[test]
+    fn test_no_match_cpp_namespace() {
+        let parser = TodoParser::new(&tags_with_error(), true);
+
+        // C++ namespace - should NOT match
+        let result = parser.parse_line("std::error_code ec;", 1);
+        assert!(result.is_none(), "Should not match error in C++ namespace");
+
+        let result2 = parser.parse_line("throw std::runtime_error(\"message\");", 1);
+        assert!(
+            result2.is_none(),
+            "Should not match error in exception type"
+        );
+    }
+
+    #[test]
+    fn test_require_colon_by_default() {
+        let parser = TodoParser::new(&default_tags(), true);
+
+        // Without colon - should NOT match
+        let result = parser.parse_line("// TODO implement this", 1);
+        assert!(
+            result.is_none(),
+            "Should not match TODO without colon by default"
+        );
+
+        let result2 = parser.parse_line("# FIXME broken code", 1);
+        assert!(
+            result2.is_none(),
+            "Should not match FIXME without colon by default"
+        );
+
+        // With colon - SHOULD match
+        let result3 = parser.parse_line("// TODO: implement this", 1);
+        assert!(result3.is_some(), "Should match TODO with colon");
+        assert_eq!(result3.unwrap().tag, "TODO");
+
+        let result4 = parser.parse_line("# FIXME: broken code", 1);
+        assert!(result4.is_some(), "Should match FIXME with colon");
+        assert_eq!(result4.unwrap().tag, "FIXME");
+    }
+
+    #[test]
+    fn test_allow_no_colon_when_configured() {
+        // Test with require_colon = false
+        let parser = TodoParser::with_options(&default_tags(), true, false, None);
+
+        // Without colon - SHOULD match
+        let result = parser.parse_line("// TODO implement this", 1);
+        assert!(
+            result.is_some(),
+            "Should match TODO without colon when configured"
+        );
+        assert_eq!(result.unwrap().tag, "TODO");
+
+        let result2 = parser.parse_line("# FIXME broken code", 1);
+        assert!(
+            result2.is_some(),
+            "Should match FIXME without colon when configured"
+        );
+
+        // With colon - SHOULD still match
+        let result3 = parser.parse_line("// TODO: implement this", 1);
+        assert!(result3.is_some(), "Should match TODO with colon");
+    }
+
+    #[test]
+    fn test_case_sensitive_by_default() {
+        let parser = TodoParser::new(&default_tags(), true);
+
+        // Lowercase - should NOT match
+        let result = parser.parse_line("// todo: implement this", 1);
+        assert!(
+            result.is_none(),
+            "Should not match lowercase todo by default"
+        );
+
+        let result2 = parser.parse_line("# fixme: broken", 1);
+        assert!(
+            result2.is_none(),
+            "Should not match lowercase fixme by default"
+        );
+
+        let result3 = parser.parse_line("/* note: remember */", 1);
+        assert!(
+            result3.is_none(),
+            "Should not match lowercase note by default"
+        );
+
+        // Uppercase - SHOULD match
+        let result4 = parser.parse_line("// TODO: implement this", 1);
+        assert!(result4.is_some(), "Should match uppercase TODO");
+        assert_eq!(result4.unwrap().tag, "TODO");
+    }
+
+    #[test]
+    fn test_case_insensitive_when_configured() {
+        // Test with case_sensitive = false
+        let parser = TodoParser::with_options(&default_tags(), false, true, None);
+
+        // Various cases - all SHOULD match
+        let result = parser.parse_line("// todo: implement this", 1);
+        assert!(result.is_some(), "Should match lowercase todo");
+        assert_eq!(result.unwrap().tag, "TODO");
+
+        let result2 = parser.parse_line("// Todo: implement this", 1);
+        assert!(result2.is_some(), "Should match mixed case Todo");
+
+        let result3 = parser.parse_line("// TODO: implement this", 1);
+        assert!(result3.is_some(), "Should match uppercase TODO");
+    }
+
+    #[test]
+    fn test_no_match_error_in_rust_result() {
+        let parser = TodoParser::new(&tags_with_error(), true);
+
+        // Rust Result type - should NOT match
+        let result = parser.parse_line("fn foo() -> Result<(), Error> {", 1);
+        assert!(result.is_none(), "Should not match Error in Result type");
+
+        let result2 = parser.parse_line("type MyResult = Result<T, Error>;", 1);
+        assert!(result2.is_none(), "Should not match Error in type alias");
+    }
+
+    #[test]
+    fn test_match_uppercase_with_colon() {
+        let tags = vec!["TODO".to_string(), "FIXME".to_string()];
+        let parser = TodoParser::with_options(&tags, true, true, None);
+
+        // These SHOULD match
+        let cases = vec![
+            "// TODO: fix this",
+            "# FIXME: broken",
+            "/* TODO: update */",
+            "-- TODO: database migration",
+            "<!-- TODO: html comment -->",
+        ];
+
+        for case in cases {
+            let result = parser.parse_line(case, 1);
+            assert!(result.is_some(), "Should match: {}", case);
+        }
+    }
+
+    #[test]
+    fn test_no_match_without_colon_default() {
+        let parser = TodoParser::new(&default_tags(), true);
+
+        // Without colon - should NOT match by default
+        let cases = vec![
+            "// TODO this is wrong",
+            "# FIXME bad code",
+            "/* NOTE something */",
+            "-- BUG in the code",
+        ];
+
+        for case in cases {
+            let result = parser.parse_line(case, 1);
+            assert!(result.is_none(), "Should not match without colon: {}", case);
+        }
+    }
+
+    #[test]
+    fn test_no_match_mixed_case_by_default() {
+        let parser = TodoParser::new(&default_tags(), true);
+
+        // Mixed case - should NOT match when case-sensitive
+        let cases = vec![
+            "// Todo: mixed case",
+            "# Fixme: mixed case",
+            "/* Note: mixed case */",
+            "-- Bug: mixed case",
+        ];
+
+        for case in cases {
+            let result = parser.parse_line(case, 1);
+            assert!(
+                result.is_none(),
+                "Should not match mixed case by default: {}",
+                case
+            );
+        }
+    }
+
+    #[test]
+    fn test_real_error_comment_matches() {
+        let parser = TodoParser::new(&tags_with_error(), true);
+
+        // Real ERROR comments with colon SHOULD match
+        let result = parser.parse_line("// ERROR: This needs to be fixed", 1);
+        assert!(result.is_some(), "Should match real ERROR comment");
+        assert_eq!(result.unwrap().tag, "ERROR");
+
+        let result2 = parser.parse_line("# ERROR: Handle this case", 1);
+        assert!(result2.is_some(), "Should match ERROR with # comment");
+        assert_eq!(result2.unwrap().tag, "ERROR");
+
+        let result3 = parser.parse_line("/* ERROR: Critical issue */", 1);
+        assert!(result3.is_some(), "Should match ERROR in block comment");
+        assert_eq!(result3.unwrap().tag, "ERROR");
+    }
+
+    #[test]
+    fn test_no_match_error_in_variable_names() {
+        let parser = TodoParser::new(&tags_with_error(), true);
+
+        // Variable names containing ERROR - should NOT match
+        let cases = vec![
+            "const ERROR_CODE = 500;",
+            "let errorMessage = 'failed';",
+            "var ERROR_HANDLER = function() {};",
+            "public static final int ERROR = 1;",
+        ];
+
+        for case in cases {
+            let result = parser.parse_line(case, 1);
+            assert!(
+                result.is_none(),
+                "Should not match ERROR in variable name: {}",
+                case
+            );
+        }
     }
 
     #[test]

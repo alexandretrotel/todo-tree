@@ -130,7 +130,8 @@ Create a `.todorc.json` or `.todorc.yaml` file in your project root:
   "json": false,
   "flat": false,
   "no_color": false,
-  "case_sensitive": false
+  "ignore_case": false,
+  "require_colon": true
 }
 ```
 
@@ -180,12 +181,57 @@ The tool recognizes TODO-style tags in various comment formats:
 
 ### Tag Formats Recognized
 
+By default, todo-tree requires tags to be **UPPERCASE** and followed by a **colon**:
+
 ```rust
-// TODO: Simple tag with colon
-// TODO Simple tag without colon
-// TODO(author): Tag with author
-// todo: Case insensitive (by default)
+// TODO: This will be found ✓
+// FIXME: This will be found ✓
+// BUG: This will be found ✓
+
+// todo: This will NOT be found (lowercase) ✗
+// TODO This will NOT be found (no colon) ✗
+// Todo: This will NOT be found (mixed case) ✗
 ```
+
+**Optional author/assignee syntax** (still works with colon):
+```rust
+// TODO(john): Assigned to john ✓
+// FIXME(team): Needs team review ✓
+```
+
+#### Flexible Matching Options
+
+You can customize the matching behavior with CLI flags:
+
+```bash
+# Ignore case when matching (matches TODO, todo, Todo, etc.)
+tt scan --ignore-case
+
+# Allow tags without colon (matches "TODO something")
+tt scan --no-require-colon
+
+# Use both options together (most flexible, like v0.2.x behavior)
+tt scan --ignore-case --no-require-colon
+```
+
+Or set these options in your `.todorc.json`:
+
+```json
+{
+  "ignore_case": true,
+  "require_colon": false
+}
+```
+
+#### Why These Defaults?
+
+The strict defaults (uppercase + colon required) significantly reduce false positives:
+- Code like `std::io::Error` in Rust/C++ won't match
+- Variable names like `ERROR_CODE` won't match
+- Prose like "this is an error" won't match
+- Type definitions like `Result<T, Error>` won't match
+
+These defaults align with most coding conventions and help you find **intentional TODO comments**, not accidental matches.
 
 ## Priority Levels
 

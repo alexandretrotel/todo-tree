@@ -101,9 +101,13 @@ pub struct ScanArgs {
     #[arg(long)]
     pub hidden: bool,
 
-    /// Case-sensitive tag matching
+    /// Ignore case when matching tags (matches TODO, todo, Todo, etc.)
     #[arg(long)]
-    pub case_sensitive: bool,
+    pub ignore_case: bool,
+
+    /// Don't require colon after tag (allow "TODO something" without colon)
+    #[arg(long)]
+    pub no_require_colon: bool,
 
     /// Sort results by: file, tag, line
     #[arg(long, default_value = "file")]
@@ -126,7 +130,8 @@ impl Default for ScanArgs {
             depth: 0,
             follow_links: false,
             hidden: false,
-            case_sensitive: false,
+            ignore_case: false,
+            no_require_colon: false,
             sort: SortOrder::File,
             group_by_tag: false,
         }
@@ -160,9 +165,13 @@ pub struct ListArgs {
     #[arg(long)]
     pub filter: Option<String>,
 
-    /// Case-sensitive tag matching
+    /// Ignore case when matching tags (matches TODO, todo, Todo, etc.)
     #[arg(long)]
-    pub case_sensitive: bool,
+    pub ignore_case: bool,
+
+    /// Don't require colon after tag (allow "TODO something" without colon)
+    #[arg(long)]
+    pub no_require_colon: bool,
 }
 
 /// Arguments for the tags command
@@ -257,7 +266,8 @@ impl From<ScanArgs> for ListArgs {
             exclude: scan.exclude,
             json: scan.json,
             filter: None,
-            case_sensitive: scan.case_sensitive,
+            ignore_case: scan.ignore_case,
+            no_require_colon: scan.no_require_colon,
         }
     }
 }
@@ -519,12 +529,12 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_scan_case_sensitive() {
-        let cli = Cli::parse_from(["todo-tree", "scan", "--case-sensitive"]);
+    fn test_parse_scan_ignore_case() {
+        let cli = Cli::parse_from(["todo-tree", "scan", "--ignore-case"]);
 
         match cli.command {
             Some(Commands::Scan(args)) => {
-                assert!(args.case_sensitive);
+                assert!(args.ignore_case);
             }
             _ => panic!("Expected Scan command"),
         }
@@ -576,7 +586,7 @@ mod tests {
         assert_eq!(args.depth, 0);
         assert!(!args.follow_links);
         assert!(!args.hidden);
-        assert!(!args.case_sensitive);
+        assert!(!args.ignore_case);
         assert_eq!(args.sort, SortOrder::File);
     }
 
@@ -589,18 +599,18 @@ mod tests {
         assert!(args.exclude.is_none());
         assert!(!args.json);
         assert!(args.filter.is_none());
-        assert!(!args.case_sensitive);
+        assert!(!args.ignore_case);
     }
 
     #[test]
-    fn test_scan_args_to_list_args_preserves_case_sensitive() {
+    fn test_scan_args_to_list_args_preserves_ignore_case() {
         let scan = ScanArgs {
-            case_sensitive: true,
+            ignore_case: true,
             ..Default::default()
         };
 
         let list: ListArgs = scan.into();
-        assert!(list.case_sensitive);
+        assert!(list.ignore_case);
     }
 
     #[test]

@@ -4,6 +4,8 @@ pub mod parser;
 pub mod printer;
 pub mod scanner;
 
+use config::CliOptions;
+
 pub use todo_tree_core::{Priority, ScanResult, Summary, TodoItem};
 
 use anyhow::Result;
@@ -44,17 +46,34 @@ fn cmd_scan(args: ScanArgs, global: &cli::GlobalOptions) -> Result<()> {
     let mut config = load_config(&path, global.config.as_deref())?;
 
     // Merge CLI options
-    config.merge_with_cli(
-        args.tags.clone(),
-        args.include.clone(),
-        args.exclude.clone(),
-        args.json,
-        args.flat,
-        global.no_color,
-    );
+    config.merge_with_cli(CliOptions {
+        tags: args.tags.clone(),
+        include: args.include.clone(),
+        exclude: args.exclude.clone(),
+        json: args.json,
+        flat: args.flat,
+        no_color: global.no_color,
+        ignore_case: args.ignore_case,
+        no_require_colon: args.no_require_colon,
+    });
+
+    // Determine case sensitivity: use inverse of ignore_case
+    let case_sensitive = !args.ignore_case && !config.ignore_case;
+
+    // Determine colon requirement
+    let require_colon = if args.no_require_colon {
+        false
+    } else {
+        config.require_colon
+    };
 
     // Create parser
-    let parser = TodoParser::new(&config.tags, args.case_sensitive);
+    let parser = TodoParser::with_options(
+        &config.tags,
+        case_sensitive,
+        require_colon,
+        config.custom_pattern.as_deref(),
+    );
 
     // Create scan options
     let scan_options = ScanOptions {
@@ -109,17 +128,34 @@ fn cmd_list(args: cli::ListArgs, global: &cli::GlobalOptions) -> Result<()> {
     let mut config = load_config(&path, global.config.as_deref())?;
 
     // Merge CLI options
-    config.merge_with_cli(
-        args.tags.clone(),
-        args.include.clone(),
-        args.exclude.clone(),
-        args.json,
-        true, // flat format for list
-        global.no_color,
-    );
+    config.merge_with_cli(CliOptions {
+        tags: args.tags.clone(),
+        include: args.include.clone(),
+        exclude: args.exclude.clone(),
+        json: args.json,
+        flat: true, // flat format for list
+        no_color: global.no_color,
+        ignore_case: args.ignore_case,
+        no_require_colon: args.no_require_colon,
+    });
+
+    // Determine case sensitivity: use inverse of ignore_case
+    let case_sensitive = !args.ignore_case && !config.ignore_case;
+
+    // Determine colon requirement
+    let require_colon = if args.no_require_colon {
+        false
+    } else {
+        config.require_colon
+    };
 
     // Create parser
-    let parser = TodoParser::new(&config.tags, args.case_sensitive);
+    let parser = TodoParser::with_options(
+        &config.tags,
+        case_sensitive,
+        require_colon,
+        config.custom_pattern.as_deref(),
+    );
 
     // Create scan options
     let scan_options = ScanOptions {
@@ -657,7 +693,8 @@ fn main() {}
             depth: 0,
             follow_links: false,
             hidden: false,
-            case_sensitive: false,
+            ignore_case: false,
+            no_require_colon: false,
             sort: cli::SortOrder::File,
             group_by_tag: false,
         };
@@ -686,8 +723,9 @@ fn main() {}
             depth: 0,
             follow_links: false,
             hidden: false,
-            case_sensitive: true,
-            sort: cli::SortOrder::Priority,
+            ignore_case: false,
+            no_require_colon: false,
+            sort: cli::SortOrder::File,
             group_by_tag: false,
         };
 
@@ -713,10 +751,11 @@ fn main() {}
             json: false,
             flat: true,
             depth: 1,
-            follow_links: true,
-            hidden: true,
-            case_sensitive: false,
-            sort: cli::SortOrder::Line,
+            follow_links: false,
+            hidden: false,
+            ignore_case: false,
+            no_require_colon: false,
+            sort: cli::SortOrder::File,
             group_by_tag: false,
         };
 
@@ -744,7 +783,8 @@ fn main() {}
             depth: 0,
             follow_links: false,
             hidden: false,
-            case_sensitive: false,
+            ignore_case: false,
+            no_require_colon: false,
             sort: cli::SortOrder::File,
             group_by_tag: true,
         };
@@ -773,7 +813,8 @@ fn main() {}
             depth: 0,
             follow_links: false,
             hidden: false,
-            case_sensitive: false,
+            ignore_case: false,
+            no_require_colon: false,
             sort: cli::SortOrder::File,
             group_by_tag: true,
         };
@@ -799,7 +840,8 @@ fn main() {}
             exclude: None,
             json: false,
             filter: None,
-            case_sensitive: false,
+            ignore_case: false,
+            no_require_colon: false,
         };
 
         let global = cli::GlobalOptions {
@@ -823,7 +865,8 @@ fn main() {}
             exclude: Some(vec!["src/**".to_string()]),
             json: false,
             filter: Some("TODO".to_string()),
-            case_sensitive: true,
+            ignore_case: false,
+            no_require_colon: false,
         };
 
         let global = cli::GlobalOptions {
@@ -847,7 +890,8 @@ fn main() {}
             exclude: None,
             json: true,
             filter: None,
-            case_sensitive: false,
+            ignore_case: false,
+            no_require_colon: false,
         };
 
         let global = cli::GlobalOptions {
@@ -1418,7 +1462,8 @@ fn main() {}
             depth: 0,
             follow_links: false,
             hidden: false,
-            case_sensitive: false,
+            ignore_case: false,
+            no_require_colon: false,
             sort: cli::SortOrder::File,
             group_by_tag: false,
         };
@@ -1448,7 +1493,8 @@ fn main() {}
             exclude: None,
             json: false,
             filter: None,
-            case_sensitive: false,
+            ignore_case: false,
+            no_require_colon: false,
         };
 
         let global = cli::GlobalOptions {

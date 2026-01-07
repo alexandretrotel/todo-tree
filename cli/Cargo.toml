@@ -1,6 +1,6 @@
 [package]
 name = "todo-tree"
-version = "0.2.1"
+version = "0.3.0"
 edition.workspace = true
 authors.workspace = true
 license-file.workspace = true
@@ -25,7 +25,7 @@ name = "tt"
 path = "src/bin/tt.rs"
 
 [dependencies]
-todo-tree-core = { path = "../core", version = "0.2.1" }
+todo-tree-core = { path = "../core", version = "0.3.0" }
 clap = { version = "4.4", features = ["derive", "env"] }
 regex = "1.10"
 ignore = "0.4"

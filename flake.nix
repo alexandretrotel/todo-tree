@@ -41,11 +41,7 @@
 
     # Patch Cargo.toml content at evaluation time
     originalCargoToml = builtins.readFile ./Cargo.toml;
-    patchedCargoToml =
-      builtins.replaceStrings
-      [''members = ["core", "cli", "extensions/zed"]'']
-      [''members = ["core", "cli"]'']
-      originalCargoToml;
+    patchedCargoToml = originalCargoToml;
 
     # Define the todo-tree package
     todoTreePackages = forEachSupportedSystem ({
@@ -57,8 +53,6 @@
       # Filter source to exclude the zed extension (since it's a git submodule)
       filteredSrc = pkgs.lib.cleanSourceWith {
         src = self;
-        filter = path: type:
-          !(pkgs.lib.hasInfix "extensions/zed" path);
       };
 
       # Use naersk's postUnpack to patch Cargo.toml
