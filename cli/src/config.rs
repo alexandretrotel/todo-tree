@@ -8,6 +8,20 @@ pub fn default_tags() -> Vec<String> {
     tags::default_tag_names()
 }
 
+/// CLI options to merge with configuration
+#[derive(Debug, Clone, Default)]
+pub struct CliOptions {
+    pub tags: Option<Vec<String>>,
+    pub include: Option<Vec<String>>,
+    pub exclude: Option<Vec<String>>,
+    pub json: bool,
+    pub flat: bool,
+    pub no_color: bool,
+    pub case_sensitive: Option<bool>,
+    pub ignore_case: bool,
+    pub no_require_colon: bool,
+}
+
 /// Configuration for the todo-tree tool
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
@@ -33,8 +47,11 @@ pub struct Config {
     /// Custom regex pattern for matching (advanced)
     pub custom_pattern: Option<String>,
 
-    /// Case sensitive matching
+    /// Case sensitive matching (default: true for uppercase-only matching)
     pub case_sensitive: bool,
+
+    /// Whether to require a colon after tags (default: true)
+    pub require_colon: bool,
 }
 
 impl Config {
@@ -48,7 +65,8 @@ impl Config {
             flat: false,
             no_color: false,
             custom_pattern: None,
-            case_sensitive: false,
+            case_sensitive: true,
+            require_colon: true,
         }
     }
 
@@ -122,42 +140,49 @@ impl Config {
     /// Merge CLI options with the loaded configuration
     ///
     /// CLI options take precedence over config file options
-    pub fn merge_with_cli(
-        &mut self,
-        tags: Option<Vec<String>>,
-        include: Option<Vec<String>>,
-        exclude: Option<Vec<String>>,
-        json: bool,
-        flat: bool,
-        no_color: bool,
-    ) {
-        if let Some(tags) = tags
+    pub fn merge_with_cli(&mut self, cli: CliOptions) {
+        if let Some(tags) = cli.tags
             && !tags.is_empty()
         {
             self.tags = tags;
         }
 
-        if let Some(include) = include
+        if let Some(include) = cli.include
             && !include.is_empty()
         {
             self.include = include;
         }
 
-        if let Some(exclude) = exclude
+        if let Some(exclude) = cli.exclude
             && !exclude.is_empty()
         {
             self.exclude.extend(exclude);
         }
 
         // CLI flags always override if set to true
-        if json {
+        if cli.json {
             self.json = true;
         }
-        if flat {
+        if cli.flat {
             self.flat = true;
         }
-        if no_color {
+        if cli.no_color {
             self.no_color = true;
+        }
+
+        // Handle case sensitivity - explicit flag takes precedence
+        if let Some(case_sensitive) = cli.case_sensitive {
+            self.case_sensitive = case_sensitive;
+        }
+
+        // If ignore_case flag is set, make case-insensitive
+        if cli.ignore_case {
+            self.case_sensitive = false;
+        }
+
+        // Handle colon requirement
+        if cli.no_require_colon {
+            self.require_colon = false;
         }
     }
 
@@ -242,14 +267,17 @@ flat: true
         let mut config = Config::new();
         config.json = false;
 
-        config.merge_with_cli(
-            Some(vec!["CUSTOM".to_string()]),
-            Some(vec!["*.rs".to_string()]),
-            Some(vec!["target/**".to_string()]),
-            true,
-            false,
-            true,
-        );
+        config.merge_with_cli(CliOptions {
+            tags: Some(vec!["CUSTOM".to_string()]),
+            include: Some(vec!["*.rs".to_string()]),
+            exclude: Some(vec!["target/**".to_string()]),
+            json: true,
+            flat: false,
+            no_color: true,
+            case_sensitive: None,
+            ignore_case: false,
+            no_require_colon: false,
+        });
 
         assert_eq!(config.tags, vec!["CUSTOM"]);
         assert_eq!(config.include, vec!["*.rs"]);
@@ -356,14 +384,17 @@ flat: true
         let original_tags = config.tags.clone();
 
         // Empty options should not change anything
-        config.merge_with_cli(
-            Some(vec![]),
-            Some(vec![]),
-            Some(vec![]),
-            false,
-            false,
-            false,
-        );
+        config.merge_with_cli(CliOptions {
+            tags: Some(vec![]),
+            include: Some(vec![]),
+            exclude: Some(vec![]),
+            json: false,
+            flat: false,
+            no_color: false,
+            case_sensitive: None,
+            ignore_case: false,
+            no_require_colon: false,
+        });
 
         assert_eq!(config.tags, original_tags);
         assert!(!config.json);
@@ -376,7 +407,7 @@ flat: true
         let mut config = Config::new();
         let original_tags = config.tags.clone();
 
-        config.merge_with_cli(None, None, None, false, false, false);
+        config.merge_with_cli(CliOptions::default());
 
         assert_eq!(config.tags, original_tags);
     }
@@ -386,14 +417,17 @@ flat: true
         let mut config = Config::new();
         config.exclude = vec!["existing/**".to_string()];
 
-        config.merge_with_cli(
-            None,
-            None,
-            Some(vec!["new/**".to_string()]),
-            false,
-            false,
-            false,
-        );
+        config.merge_with_cli(CliOptions {
+            tags: None,
+            include: None,
+            exclude: Some(vec!["new/**".to_string()]),
+            json: false,
+            flat: false,
+            no_color: false,
+            case_sensitive: None,
+            ignore_case: false,
+            no_require_colon: false,
+        });
 
         assert!(config.exclude.contains(&"existing/**".to_string()));
         assert!(config.exclude.contains(&"new/**".to_string()));
@@ -412,7 +446,8 @@ flat: true
             "flat": true,
             "no_color": true,
             "custom_pattern": "PATTERN",
-            "case_sensitive": true
+            "case_sensitive": true,
+            "require_colon": false
         }"#;
 
         std::fs::write(&config_path, config_content).unwrap();
@@ -426,6 +461,7 @@ flat: true
         assert!(config.no_color);
         assert_eq!(config.custom_pattern, Some("PATTERN".to_string()));
         assert!(config.case_sensitive);
+        assert!(!config.require_colon);
     }
 
     #[test]

@@ -101,9 +101,17 @@ pub struct ScanArgs {
     #[arg(long)]
     pub hidden: bool,
 
-    /// Case-sensitive tag matching
+    /// Case-sensitive tag matching (default: true, only uppercase tags match)
     #[arg(long)]
     pub case_sensitive: bool,
+
+    /// Ignore case when matching tags (matches TODO, todo, Todo, etc.)
+    #[arg(long)]
+    pub ignore_case: bool,
+
+    /// Don't require colon after tag (allow "TODO something" without colon)
+    #[arg(long)]
+    pub no_require_colon: bool,
 
     /// Sort results by: file, tag, line
     #[arg(long, default_value = "file")]
@@ -127,6 +135,8 @@ impl Default for ScanArgs {
             follow_links: false,
             hidden: false,
             case_sensitive: false,
+            ignore_case: false,
+            no_require_colon: false,
             sort: SortOrder::File,
             group_by_tag: false,
         }
@@ -160,9 +170,17 @@ pub struct ListArgs {
     #[arg(long)]
     pub filter: Option<String>,
 
-    /// Case-sensitive tag matching
+    /// Case-sensitive tag matching (default: true, only uppercase tags match)
     #[arg(long)]
     pub case_sensitive: bool,
+
+    /// Ignore case when matching tags (matches TODO, todo, Todo, etc.)
+    #[arg(long)]
+    pub ignore_case: bool,
+
+    /// Don't require colon after tag (allow "TODO something" without colon)
+    #[arg(long)]
+    pub no_require_colon: bool,
 }
 
 /// Arguments for the tags command
@@ -258,6 +276,8 @@ impl From<ScanArgs> for ListArgs {
             json: scan.json,
             filter: None,
             case_sensitive: scan.case_sensitive,
+            ignore_case: scan.ignore_case,
+            no_require_colon: scan.no_require_colon,
         }
     }
 }
