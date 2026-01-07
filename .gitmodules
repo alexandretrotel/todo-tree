@@ -1,6 +1,0 @@
-[submodule "extensions/zed"]
-	path = extensions/zed
-	url = https://github.com/alexandretrotel/zed-todo-tree
-[submodule "todo-tree-action"]
-	path = todo-tree-action
-	url = https://github.com/alexandretrotel/todo-tree-action.git

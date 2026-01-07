@@ -216,46 +216,23 @@ The tool generates clickable hyperlinks (OSC 8) in supported terminals:
 
 Colors are automatically enabled when outputting to a terminal. Use `--no-color` or set the `NO_COLOR` environment variable to disable.
 
-## Extensions
+## Related Projects
 
-### GitHub Action
+### 🔗 [todo-tree-action](https://github.com/alexandretrotel/todo-tree-action)
 
-The [todo-tree-action](https://github.com/alexandretrotel/todo-tree-action) automatically scans your pull requests for TODO comments and posts a summary as a PR comment.
+A GitHub Action that automatically scans your pull requests for TODO comments and posts a summary as a PR comment. Features include:
+- Scan only changed files in PRs
+- Filter to show only NEW TODOs (not in base branch)
+- Automatic PR comment with formatted results
+- Full configuration support
 
-```yaml
-# .github/workflows/todo-tree.yml
-name: Todo Tree
+### 🔗 [zed-todo-tree](https://github.com/alexandretrotel/zed-todo-tree)
 
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-permissions:
-  contents: read
-  pull-requests: write
-
-jobs:
-  scan-todos:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: alexandretrotel/todo-tree-action@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          changed-only: true  # Only scan files changed in the PR
-          new-only: true      # Only show NEW TODOs (not in base branch)
-```
-
-See the [todo-tree-action repository](https://github.com/alexandretrotel/todo-tree-action) for full documentation and configuration options.
-
-### Zed Editor
-
-The [zed-todo-tree](https://github.com/alexandretrotel/zed-todo-tree) extension integrates TODO scanning directly into Zed Assistant using slash commands.
-
-See the [zed-todo-tree repository](https://github.com/alexandretrotel/zed-todo-tree) for installation instructions, usage details, and required capabilities.
+A Zed Editor extension that integrates TODO scanning directly into Zed Assistant using slash commands. Features include:
+- Scan TODOs via `/todo-tree` slash command
+- Interactive results in the assistant panel
+- Full configuration support
+- Seamless editor integration
 
 ## Contributing
 
