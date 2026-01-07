@@ -13,7 +13,7 @@ A command-line tool to find and display TODO-style comments in your codebase, si
 - ⚙️ **Configuration file support** - `.todorc` in JSON or YAML format
 - 🎨 **Colored output** - Priority-based coloring for different tag types
 - 🔗 **Clickable links** - Terminal hyperlinks to file locations (where supported)
-- 🧩 **Editor extensions** - Integrates with Zed via slash commands
+- 🧩 **Editor extensions** - Integrates with Zed
 - 🤖 **GitHub Action** - Automatically scan PRs and post TODO summaries as comments
 
 ## Installation
@@ -228,8 +228,7 @@ A GitHub Action that automatically scans your pull requests for TODO comments an
 
 ### [zed-todo-tree](https://github.com/alexandretrotel/zed-todo-tree)
 
-A Zed Editor extension that integrates TODO scanning directly into Zed Assistant using slash commands. Features include:
-- Scan TODOs via `/todo-tree` slash command
+A Zed Editor extension that integrates TODO scanning directly into Zed. Features include:
 - Interactive results in the assistant panel
 - Full configuration support
 - Seamless editor integration
