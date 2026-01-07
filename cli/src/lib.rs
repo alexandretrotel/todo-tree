@@ -53,24 +53,12 @@ fn cmd_scan(args: ScanArgs, global: &cli::GlobalOptions) -> Result<()> {
         json: args.json,
         flat: args.flat,
         no_color: global.no_color,
-        case_sensitive: if args.case_sensitive {
-            Some(true)
-        } else {
-            None
-        },
         ignore_case: args.ignore_case,
         no_require_colon: args.no_require_colon,
     });
 
-    // Determine case sensitivity: explicit case_sensitive flag takes precedence,
-    // otherwise ignore_case flag, otherwise use config
-    let case_sensitive = if args.case_sensitive {
-        true
-    } else if args.ignore_case {
-        false
-    } else {
-        config.case_sensitive
-    };
+    // Determine case sensitivity: use inverse of ignore_case
+    let case_sensitive = !args.ignore_case && !config.ignore_case;
 
     // Determine colon requirement
     let require_colon = if args.no_require_colon {
@@ -147,24 +135,12 @@ fn cmd_list(args: cli::ListArgs, global: &cli::GlobalOptions) -> Result<()> {
         json: args.json,
         flat: true, // flat format for list
         no_color: global.no_color,
-        case_sensitive: if args.case_sensitive {
-            Some(true)
-        } else {
-            None
-        },
         ignore_case: args.ignore_case,
         no_require_colon: args.no_require_colon,
     });
 
-    // Determine case sensitivity: explicit case_sensitive flag takes precedence,
-    // otherwise ignore_case flag, otherwise use config
-    let case_sensitive = if args.case_sensitive {
-        true
-    } else if args.ignore_case {
-        false
-    } else {
-        config.case_sensitive
-    };
+    // Determine case sensitivity: use inverse of ignore_case
+    let case_sensitive = !args.ignore_case && !config.ignore_case;
 
     // Determine colon requirement
     let require_colon = if args.no_require_colon {
@@ -717,7 +693,6 @@ fn main() {}
             depth: 0,
             follow_links: false,
             hidden: false,
-            case_sensitive: false,
             ignore_case: false,
             no_require_colon: false,
             sort: cli::SortOrder::File,
@@ -748,7 +723,6 @@ fn main() {}
             depth: 0,
             follow_links: false,
             hidden: false,
-            case_sensitive: false,
             ignore_case: false,
             no_require_colon: false,
             sort: cli::SortOrder::File,
@@ -779,7 +753,6 @@ fn main() {}
             depth: 1,
             follow_links: false,
             hidden: false,
-            case_sensitive: false,
             ignore_case: false,
             no_require_colon: false,
             sort: cli::SortOrder::File,
@@ -810,7 +783,6 @@ fn main() {}
             depth: 0,
             follow_links: false,
             hidden: false,
-            case_sensitive: false,
             ignore_case: false,
             no_require_colon: false,
             sort: cli::SortOrder::File,
@@ -841,7 +813,6 @@ fn main() {}
             depth: 0,
             follow_links: false,
             hidden: false,
-            case_sensitive: false,
             ignore_case: false,
             no_require_colon: false,
             sort: cli::SortOrder::File,
@@ -869,7 +840,6 @@ fn main() {}
             exclude: None,
             json: false,
             filter: None,
-            case_sensitive: false,
             ignore_case: false,
             no_require_colon: false,
         };
@@ -895,7 +865,6 @@ fn main() {}
             exclude: Some(vec!["src/**".to_string()]),
             json: false,
             filter: Some("TODO".to_string()),
-            case_sensitive: true,
             ignore_case: false,
             no_require_colon: false,
         };
@@ -921,7 +890,6 @@ fn main() {}
             exclude: None,
             json: true,
             filter: None,
-            case_sensitive: false,
             ignore_case: false,
             no_require_colon: false,
         };
@@ -1494,7 +1462,6 @@ fn main() {}
             depth: 0,
             follow_links: false,
             hidden: false,
-            case_sensitive: false,
             ignore_case: false,
             no_require_colon: false,
             sort: cli::SortOrder::File,
@@ -1526,7 +1493,6 @@ fn main() {}
             exclude: None,
             json: false,
             filter: None,
-            case_sensitive: false,
             ignore_case: false,
             no_require_colon: false,
         };

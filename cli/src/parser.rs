@@ -836,10 +836,16 @@ class CustomError extends FetchError {
 
         // Code with :: scope operator - should NOT match
         let result = parser.parse_line("BindAddress { source: std::io::Error },", 1);
-        assert!(result.is_none(), "Should not match ERROR in scope resolution");
+        assert!(
+            result.is_none(),
+            "Should not match ERROR in scope resolution"
+        );
 
         let result2 = parser.parse_line("fmt::Println(\"error\")", 1);
-        assert!(result2.is_none(), "Should not match in code with :: operator");
+        assert!(
+            result2.is_none(),
+            "Should not match in code with :: operator"
+        );
     }
 
     #[test]

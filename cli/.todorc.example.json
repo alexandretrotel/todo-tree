@@ -5,7 +5,7 @@
   "json": false,
   "flat": false,
   "no_color": false,
-  "case_sensitive": true,
+  "ignore_case": false,
   "require_colon": true,
   "custom_pattern": null
 }

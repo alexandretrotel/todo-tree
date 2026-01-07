@@ -17,7 +17,6 @@ pub struct CliOptions {
     pub json: bool,
     pub flat: bool,
     pub no_color: bool,
-    pub case_sensitive: Option<bool>,
     pub ignore_case: bool,
     pub no_require_colon: bool,
 }
@@ -47,8 +46,8 @@ pub struct Config {
     /// Custom regex pattern for matching (advanced)
     pub custom_pattern: Option<String>,
 
-    /// Case sensitive matching (default: true for uppercase-only matching)
-    pub case_sensitive: bool,
+    /// Ignore case when matching tags (default: false for case-sensitive matching)
+    pub ignore_case: bool,
 
     /// Whether to require a colon after tags (default: true)
     pub require_colon: bool,
@@ -65,7 +64,7 @@ impl Config {
             flat: false,
             no_color: false,
             custom_pattern: None,
-            case_sensitive: true,
+            ignore_case: false,
             require_colon: true,
         }
     }
@@ -170,14 +169,9 @@ impl Config {
             self.no_color = true;
         }
 
-        // Handle case sensitivity - explicit flag takes precedence
-        if let Some(case_sensitive) = cli.case_sensitive {
-            self.case_sensitive = case_sensitive;
-        }
-
-        // If ignore_case flag is set, make case-insensitive
+        // Handle case sensitivity
         if cli.ignore_case {
-            self.case_sensitive = false;
+            self.ignore_case = true;
         }
 
         // Handle colon requirement
@@ -274,7 +268,6 @@ flat: true
             json: true,
             flat: false,
             no_color: true,
-            case_sensitive: None,
             ignore_case: false,
             no_require_colon: false,
         });
@@ -391,7 +384,6 @@ flat: true
             json: false,
             flat: false,
             no_color: false,
-            case_sensitive: None,
             ignore_case: false,
             no_require_colon: false,
         });
@@ -424,7 +416,6 @@ flat: true
             json: false,
             flat: false,
             no_color: false,
-            case_sensitive: None,
             ignore_case: false,
             no_require_colon: false,
         });
@@ -446,7 +437,7 @@ flat: true
             "flat": true,
             "no_color": true,
             "custom_pattern": "PATTERN",
-            "case_sensitive": true,
+            "ignore_case": false,
             "require_colon": false
         }"#;
 
@@ -460,7 +451,7 @@ flat: true
         assert!(config.flat);
         assert!(config.no_color);
         assert_eq!(config.custom_pattern, Some("PATTERN".to_string()));
-        assert!(config.case_sensitive);
+        assert!(!config.ignore_case);
         assert!(!config.require_colon);
     }
 

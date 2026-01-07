@@ -17,10 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ✨ Added
 
-- **New `--ignore-case` flag**: Match tags case-insensitively (matches TODO, todo, Todo, etc.)
+- **New `--ignore-case` flag**: Ignore case when matching tags (matches TODO, todo, Todo, etc.)
 - **New `--no-require-colon` flag**: Allow tags without colon (e.g., `TODO something` without `:`)
-- **New `require_colon` config option**: Control colon requirement in `.todorc` configuration files
-- **Enhanced configuration**: Both flags can be set in `.todorc.json` or `.todorc.yaml` files
+- **New `require_colon` and `ignore_case` config options**: Control matching behavior in `.todorc` configuration files
+- **Enhanced configuration**: Options can be set in `.todorc.json` or `.todorc.yaml` files
 - **Comprehensive test suite**: Added 15+ new tests to prevent false positives
 
 ### 🐛 Fixed
@@ -60,14 +60,14 @@ tt scan --ignore-case --no-require-colon
 **Option 2: Configuration file** (`.todorc.json`)
 ```json
 {
-  "case_sensitive": false,
+  "ignore_case": true,
   "require_colon": false
 }
 ```
 
 **Option 3: Configuration file** (`.todorc.yaml`)
 ```yaml
-case_sensitive: false
+ignore_case: true
 require_colon: false
 ```
 
@@ -121,11 +121,11 @@ require_colon: false
 
 - Changed default tag matching to require uppercase + colon
 - Removed `::` from default comment markers to prevent false positives
-- `case_sensitive` default changed from `false` to `true`
+- Config now uses `ignore_case` instead of `case_sensitive` for clearer semantics
 
 #### ✨ Added
 
-- New `require_colon` parameter in parser configuration
+- New `require_colon` and `ignore_case` parameters in parser configuration
 - Enhanced regex pattern builder with colon requirement option
 - New `TodoParser::with_options()` method for full configuration control
 

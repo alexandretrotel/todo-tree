@@ -15,6 +15,6 @@
   "flat": false,
   "no_color": false,
   "custom_pattern": null,
-  "case_sensitive": true,
+  "ignore_case": false,
   "require_colon": true
 }

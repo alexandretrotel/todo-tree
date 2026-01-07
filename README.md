@@ -130,7 +130,7 @@ Create a `.todorc.json` or `.todorc.yaml` file in your project root:
   "json": false,
   "flat": false,
   "no_color": false,
-  "case_sensitive": true,
+  "ignore_case": false,
   "require_colon": true
 }
 ```
@@ -204,7 +204,7 @@ By default, todo-tree requires tags to be **UPPERCASE** and followed by a **colo
 You can customize the matching behavior with CLI flags:
 
 ```bash
-# Allow case-insensitive matching (matches TODO, todo, Todo, etc.)
+# Ignore case when matching (matches TODO, todo, Todo, etc.)
 tt scan --ignore-case
 
 # Allow tags without colon (matches "TODO something")
@@ -218,7 +218,7 @@ Or set these options in your `.todorc.json`:
 
 ```json
 {
-  "case_sensitive": false,
+  "ignore_case": true,
   "require_colon": false
 }
 ```
