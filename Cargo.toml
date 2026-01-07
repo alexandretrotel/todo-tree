@@ -5,7 +5,7 @@ members = ["core", "cli"]
 [workspace.package]
 edition = "2024"
 authors = ["Alexandre Trotel"]
-license-file = "LICENSE.md"
+license-file = "LICENSE"
 repository = "https://github.com/alexandretrotel/todo-tree"
 homepage = "https://github.com/alexandretrotel/todo-tree"
 

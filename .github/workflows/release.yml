@@ -70,7 +70,7 @@ jobs:
           mkdir -p dist/todo-tree-${{ matrix.target }}
           cp target/${{ matrix.target }}/release/todo-tree dist/todo-tree-${{ matrix.target }}/
           cp target/${{ matrix.target }}/release/tt dist/todo-tree-${{ matrix.target }}/
-          cp README.md LICENSE.md dist/todo-tree-${{ matrix.target }}/
+          cp README.md LICENSE dist/todo-tree-${{ matrix.target }}/
           cd dist
           tar -czvf todo-tree-${{ matrix.target }}.tar.gz todo-tree-${{ matrix.target }}
 
@@ -82,7 +82,7 @@ jobs:
           Copy-Item target/${{ matrix.target }}/release/todo-tree.exe dist/todo-tree-${{ matrix.target }}/
           Copy-Item target/${{ matrix.target }}/release/tt.exe dist/todo-tree-${{ matrix.target }}/
           Copy-Item README.md dist/todo-tree-${{ matrix.target }}/
-          Copy-Item LICENSE.md dist/todo-tree-${{ matrix.target }}/
+          Copy-Item LICENSE dist/todo-tree-${{ matrix.target }}/
           Compress-Archive -Path dist/todo-tree-${{ matrix.target }} -DestinationPath dist/todo-tree-${{ matrix.target }}.zip
 
       - name: Upload artifact (Unix)
