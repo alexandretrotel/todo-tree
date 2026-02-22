@@ -1,4 +1,4 @@
-name: Todo Tree Action Test
+name: Todo Tree Action
 
 on:
   pull_request:
@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run Todo Tree Action
-        uses: alexandretrotel/todo-tree-action@v1.0.2
+        uses: atrtde/todo-tree-action@v1.0.2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           changed-only: true
