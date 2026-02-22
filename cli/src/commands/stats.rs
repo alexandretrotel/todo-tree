@@ -1,8 +1,9 @@
 use super::load_config;
 use crate::{
     cli,
-    parser::{TodoParser, priority_to_color},
+    parser::TodoParser,
     scanner::{ScanOptions, Scanner},
+    utils::display::priority_to_color,
 };
 use anyhow::{Context, Result};
 use colored::Colorize;
