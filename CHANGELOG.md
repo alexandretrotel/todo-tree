@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## todo-tree-0.4.0
+
+### Breaking Changes
+- **Core API rename**: `Summary` is now `ScanSummary` and `ScanResult.summary` now uses `ScanSummary`.
+- **License change**: Project license changed to GPLv3.
+
+### Added
+- **Core parser module** with exported `DEFAULT_REGEX`.
+- **CLI display utilities** for color handling.
+
+### Changed
+- Refactored CLI scanner, parser, commands, and printer into smaller modules.
+- Switched config handling dependencies to `yaml_serde` and `directories-next`.
+- Updated CI/release workflows and README metadata/links.
+
+### Removed
+- Removed example `.todorc` files from the repository.
+- Removed unused test dependencies and test files.
+
 ## todo-tree-0.3.0
 
 ### Breaking Changes
