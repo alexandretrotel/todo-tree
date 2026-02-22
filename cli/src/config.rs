@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use directories_next::BaseDirs;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use todo_tree_core::tags::default_tag_names;
@@ -72,7 +73,8 @@ impl Config {
             return Ok(Some(config));
         }
 
-        if let Some(config_dir) = dirs::config_dir() {
+        if let Some(base_dirs) = BaseDirs::new() {
+            let config_dir = base_dirs.config_dir();
             let global_configs = [
                 config_dir.join("todo-tree").join("config.json"),
                 config_dir.join("todo-tree").join("config.yaml"),
@@ -95,9 +97,9 @@ impl Config {
 
         let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
         let parse_result = if extension == "yaml" || extension == "yml" {
-            serde_yaml::from_str(&content)
+            yaml_serde::from_str(&content)
         } else {
-            serde_json::from_str(&content).or_else(|_| serde_yaml::from_str(&content))
+            serde_json::from_str(&content).or_else(|_| yaml_serde::from_str(&content))
         };
 
         parse_result.with_context(|| format!("Failed to parse config: {}", path.display()))
@@ -144,7 +146,7 @@ impl Config {
     pub fn save(&self, path: &Path) -> Result<()> {
         let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
         let content = if extension == "yaml" || extension == "yml" {
-            serde_yaml::to_string(self)?
+            yaml_serde::to_string(self)?
         } else {
             serde_json::to_string_pretty(self)?
         };
