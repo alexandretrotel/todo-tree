@@ -7,13 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## todo-tree-0.3.0
 
-### 🚨 Breaking Changes
+### Breaking Changes
 
 - **Default scanning now requires uppercase tags with colon**: By default, only `TODO:` format matches, not `todo:` or `TODO ` (without colon). This significantly reduces false positives in real-world codebases.
 - **Case-sensitive matching is now the default**: Tags must be uppercase (TODO, FIXME, BUG) to match. Use `--ignore-case` to restore the old behavior.
 - **Removed `::` from default comment markers**: Prevents false positives in Rust, C++, and other languages where `::` is used as a scope resolution operator (e.g., `std::io::Error` no longer matches the ERROR tag).
 
-### ✨ Added
+### Added
 
 - **New `--ignore-case` flag**: Ignore case when matching tags (matches TODO, todo, Todo, etc.)
 - **New `--no-require-colon` flag**: Allow tags without colon (e.g., `TODO something` without `:`)
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enhanced configuration**: Options can be set in `.todorc.json` or `.todorc.yaml` files
 - **Comprehensive test suite**: Added 15+ new tests to prevent false positives
 
-### 🐛 Fixed
+### Fixed
 
 - **False positive**: `std::io::Error` in Rust/C++ code no longer matches ERROR tag
 - **False positive**: `std::error` in C++ namespace no longer matches ERROR tag
@@ -29,14 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **False positive**: Prose like "this is an error" no longer matches ERROR tag
 - **False positive**: `Result<T, Error>` in Rust type definitions no longer matches ERROR tag
 
-### 📚 Documentation
+### Documentation
 
 - Updated README with new scanning behavior and examples
 - Added CHANGELOG to track version history
 - Added migration guide for users upgrading from 0.2.x
 - Improved documentation of default regex pattern
 
-### 🧪 Tests
+### Tests
 
 - Added test for Rust scope resolution operator (`std::io::Error`)
 - Added test for scope resolution with `::` operator
@@ -46,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added tests for variable names containing tag words
 - Added tests for mixed-case tag matching
 
-### 🔄 Migration from 0.2.x to 0.3.0
+### Migration from 0.2.x to 0.3.0
 
 If you want the old behavior (case-insensitive, no colon required), you have two options:
 
@@ -99,15 +99,15 @@ require_colon: false
 - NixOS Flakes support
 
 ### Features
-- 🔍 Recursive directory scanning with `.gitignore` support
-- 🏷️ Configurable tags with priority levels
-- 🌳 Beautiful tree view output
-- 📋 Multiple output formats (tree, flat, JSON)
-- ⚙️ Configuration file support
-- 🎨 Colored output with priority-based coloring
-- 🔗 Clickable links in supported terminals
-- 🚀 Fast parallel scanning
-- 📊 Statistics and summary views
+- Recursive directory scanning with `.gitignore` support
+- Configurable tags with priority levels
+- Beautiful tree view output
+- Multiple output formats (tree, flat, JSON)
+- Configuration file support
+- Colored output with priority-based coloring
+- Clickable links in supported terminals
+- Fast parallel scanning
+- Statistics and summary views
 
 ---
 
@@ -115,19 +115,19 @@ require_colon: false
 
 ### todo-tree-core-0.3.0
 
-#### 🚨 Breaking Changes
+#### Breaking Changes
 
 - Changed default tag matching to require uppercase + colon
 - Removed `::` from default comment markers to prevent false positives
 - Config now uses `ignore_case` instead of `case_sensitive` for clearer semantics
 
-#### ✨ Added
+#### Added
 
 - New `require_colon` and `ignore_case` parameters in parser configuration
 - Enhanced regex pattern builder with colon requirement option
 - New `TodoParser::with_options()` method for full configuration control
 
-#### 📝 Deprecated
+#### Deprecated
 
 - `TodoParser::with_regex()` is deprecated in favor of `with_options()`
 

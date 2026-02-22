@@ -13,22 +13,32 @@ A command-line tool to find and display TODO-style comments in your codebase, si
 - ⚙️ **Configuration file support** - `.todorc` in JSON or YAML format
 - 🎨 **Colored output** - Priority-based coloring for different tag types
 - 🔗 **Clickable links** - Terminal hyperlinks to file locations (where supported)
-- 🧩 **Editor extensions** - Integrates with Zed
 - 🤖 **GitHub Action** - Automatically scan PRs and post TODO summaries as comments
 
 ## Installation
 
-### Using Homebrew (macOS/Linux)
-
-```bash
-brew tap alexandretrotel/todo-tree
-brew install todo-tree
-```
-
-### Using Cargo
+### Using Cargo (Recommended)
 
 ```bash
 cargo install todo-tree
+```
+
+### From Source
+
+```bash
+# Clone the repository
+git clone https://github.com/atrtde/todo-tree.git
+cd todo-tree
+
+# Build and install
+cargo install --path .
+```
+
+### Using Homebrew (macOS/Linux)
+
+```bash
+brew tap atrtde/todo-tree
+brew install todo-tree
 ```
 
 ### NixOS (Flakes)
@@ -37,14 +47,14 @@ cargo install todo-tree
 
 ```bash
 # runs the default todo-tree command
-nix run github:alexandretrotel/todo-tree
+nix run github:atrtde/todo-tree
 
 # create a shell with the command available (with nix-output-monitor)
-nom shell github:alexandretrotel/todo-tree
+nom shell github:atrtde/todo-tree
 tt tags
 
 # or, just normal nix
-nix shell github:alexandretrotel/todo-tree
+nix shell github:atrtde/todo-tree
 tt scan ~/projects/todo-tree --tags FIXME
 ```
 
@@ -57,7 +67,7 @@ tt scan ~/projects/todo-tree --tags FIXME
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    todo-tree.url = "github:alexandretrotel/todo-tree";
+    todo-tree.url = "github:atrtde/todo-tree";
   };
 
   outputs = { self, nixpkgs, todo-tree, ... }: {
@@ -77,17 +87,6 @@ tt scan ~/projects/todo-tree --tags FIXME
     todo-tree.packages.${pkgs.stdenv.hostPlatform.system}.todo-tree
   ];
 }
-```
-
-### From Source
-
-```bash
-# Clone the repository
-git clone https://github.com/alexandretrotel/todo-tree.git
-cd todo-tree
-
-# Build and install
-cargo install --path .
 ```
 
 ## Usage
@@ -166,20 +165,7 @@ no_color: false
 4. Parent directories (recursive)
 5. `~/.config/todo-tree/config.json` (global config)
 
-## Supported Comment Styles
-
-The tool recognizes TODO-style tags in various comment formats:
-
-| Language | Comment Styles |
-|----------|---------------|
-| C, C++, Rust, Go, Java, JavaScript, TypeScript | `//`, `/* */` |
-| Python, Ruby, Shell, YAML | `#` |
-| HTML, XML | `<!-- -->` |
-| SQL | `--`, `/* */` |
-| Lisp, Clojure | `;` |
-| Lua | `--` |
-
-### Tag Formats Recognized
+## Tag Matching Rules
 
 By default, todo-tree requires tags to be **UPPERCASE** and followed by a **colon**:
 
@@ -199,7 +185,7 @@ By default, todo-tree requires tags to be **UPPERCASE** and followed by a **colo
 // FIXME(team): Needs team review ✓
 ```
 
-#### Flexible Matching Options
+### Flexible Matching Options
 
 You can customize the matching behavior with CLI flags:
 
@@ -223,26 +209,11 @@ Or set these options in your `.todorc.json`:
 }
 ```
 
-#### Why These Defaults?
+### Why These Defaults?
 
-The strict defaults (uppercase + colon required) significantly reduce false positives:
-- Code like `std::io::Error` in Rust/C++ won't match
-- Variable names like `ERROR_CODE` won't match
-- Prose like "this is an error" won't match
-- Type definitions like `Result<T, Error>` won't match
+The strict defaults (uppercase + colon required) significantly reduce false positives.
 
 These defaults align with most coding conventions and help you find **intentional TODO comments**, not accidental matches.
-
-## Priority Levels
-
-Tags are assigned priority levels for sorting and coloring:
-
-| Priority | Tags | Color |
-|----------|------|-------|
-| Critical | BUG, FIXME, ERROR | Red |
-| High | HACK, WARN, WARNING, FIX | Yellow |
-| Medium | TODO, WIP, MAYBE | Cyan |
-| Low | NOTE, XXX, INFO, DOCS, PERF, TEST, IDEA | Green |
 
 ## Terminal Support
 
@@ -264,7 +235,7 @@ Colors are automatically enabled when outputting to a terminal. Use `--no-color`
 
 ## Related Projects
 
-### [todo-tree-action](https://github.com/alexandretrotel/todo-tree-action)
+### [todo-tree-action](https://github.com/atrtde/todo-tree-action)
 
 A GitHub Action that automatically scans your pull requests for TODO comments and posts a summary as a PR comment. Features include:
 - Scan only changed files in PRs
@@ -272,28 +243,14 @@ A GitHub Action that automatically scans your pull requests for TODO comments an
 - Automatic PR comment with formatted results
 - Full configuration support
 
-### [zed-todo-tree](https://github.com/alexandretrotel/zed-todo-tree)
-
-A Zed Editor extension that integrates TODO scanning directly into Zed. Features include:
-- Interactive results in the assistant panel
-- Full configuration support
-- Seamless editor integration
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feat/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feat/amazing-feature`)
-5. Open a Pull Request
-
 ## Acknowledgments
 
 - Inspired by the [Todo Tree](https://marketplace.visualstudio.com/items?itemName=Gruntfuggly.todo-tree) VS Code extension
-- Built with [clap](https://github.com/clap-rs/clap), [ignore](https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore), and [regex](https://github.com/rust-lang/regex)
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+GPL-3.0-or-later
