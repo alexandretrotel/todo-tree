@@ -4,6 +4,7 @@ pub mod config;
 pub mod parser;
 pub mod printer;
 pub mod scanner;
+pub mod utils;
 
 use anyhow::Result;
 use clap::Parser;
