@@ -9,6 +9,7 @@ use config::CliOptions;
 pub use todo_tree_core::{Priority, ScanResult, ScanSummary, TodoItem};
 
 use anyhow::Result;
+use clap::Parser;
 use cli::{Cli, Commands, ConfigFormat, ScanArgs, SortOrder};
 use config::Config;
 use parser::{TodoParser, priority_to_color};
@@ -18,14 +19,12 @@ use std::path::PathBuf;
 
 /// Main entry point for the CLI application
 pub fn run() -> Result<()> {
-    let cli = Cli::parse_args();
+    let cli = Cli::parse();
 
-    // Handle no-color globally
     if cli.global.no_color || std::env::var("NO_COLOR").is_ok() {
         colored::control::set_override(false);
     }
 
-    // Execute the command
     match cli.get_command() {
         Commands::Scan(args) => cmd_scan(args, &cli.global),
         Commands::List(args) => cmd_list(args, &cli.global),
