@@ -228,6 +228,7 @@ The tool generates clickable hyperlinks (OSC 8) in supported terminals:
 - GNOME Terminal (VTE 0.50+)
 - Konsole
 - Alacritty
+- Ghostty
 
 ### Color Support
 
