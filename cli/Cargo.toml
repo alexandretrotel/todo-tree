@@ -26,16 +26,16 @@ path = "src/bin/tt.rs"
 
 [dependencies]
 todo-tree-core = { path = "../core", version = "0.3.0" }
-clap = { version = "4.4", features = ["derive", "env"] }
-regex = "1.10"
-ignore = "0.4"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-serde_yaml = "0.9"
-colored = "3.0"
-anyhow = "1.0"
+clap = { version = "4.5.60", features = ["derive", "env"] }
+regex = "1.12.3"
+ignore = "0.4.25"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+yaml_serde = "0.10.3"
+colored = "3.1.1"
+anyhow = "1.0.102"
 dirs = "6.0"
-glob = "0.3"
+glob = "0.3.3"
 
 [dev-dependencies]
 tempfile = "3.10"
