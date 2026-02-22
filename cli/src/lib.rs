@@ -6,7 +6,7 @@ pub mod scanner;
 
 use config::CliOptions;
 
-pub use todo_tree_core::{Priority, ScanResult, Summary, TodoItem};
+pub use todo_tree_core::{Priority, ScanResult, ScanSummary, TodoItem};
 
 use anyhow::Result;
 use cli::{Cli, Commands, ConfigFormat, ScanArgs, SortOrder};

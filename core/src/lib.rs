@@ -4,4 +4,4 @@ pub mod types;
 
 pub use priority::Priority;
 pub use tags::{DEFAULT_TAGS, TagDefinition};
-pub use types::{FileResult, ScanResult, Summary, TodoItem};
+pub use types::{FileResult, ScanResult, ScanSummary, TodoItem};
