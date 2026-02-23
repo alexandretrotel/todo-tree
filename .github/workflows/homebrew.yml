@@ -36,7 +36,7 @@ jobs:
         id: sha256
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          BASE_URL="https://github.com/atrtde/todo-tree/releases/download/todo-tree-v${VERSION}"
+          BASE_URL="https://github.com/alexandretrotel/todo-tree/releases/download/todo-tree-v${VERSION}"
 
           curl -fsSL "${BASE_URL}/todo-tree-aarch64-apple-darwin.tar.gz" -o arm64-darwin.tar.gz
           curl -fsSL "${BASE_URL}/todo-tree-x86_64-apple-darwin.tar.gz" -o x86_64-darwin.tar.gz
@@ -51,7 +51,7 @@ jobs:
       - name: Checkout Homebrew tap
         uses: actions/checkout@v6
         with:
-          repository: atrtde/homebrew-todo-tree
+          repository: alexandretrotel/homebrew-todo-tree
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           path: homebrew-tap
 
@@ -66,30 +66,30 @@ jobs:
 
           class TodoTree < Formula
             desc "A CLI tool to find and display TODO-style comments in your codebase"
-            homepage "https://github.com/atrtde/todo-tree"
+            homepage "https://github.com/alexandretrotel/todo-tree"
             version "VERSION_PLACEHOLDER"
             license "GPL-3.0-or-later"
 
             on_macos do
               on_arm do
-                url "https://github.com/atrtde/todo-tree/releases/download/todo-tree-v#{version}/todo-tree-aarch64-apple-darwin.tar.gz"
+                url "https://github.com/alexandretrotel/todo-tree/releases/download/todo-tree-v#{version}/todo-tree-aarch64-apple-darwin.tar.gz"
                 sha256 "ARM64_DARWIN_SHA256"
               end
 
               on_intel do
-                url "https://github.com/atrtde/todo-tree/releases/download/todo-tree-v#{version}/todo-tree-x86_64-apple-darwin.tar.gz"
+                url "https://github.com/alexandretrotel/todo-tree/releases/download/todo-tree-v#{version}/todo-tree-x86_64-apple-darwin.tar.gz"
                 sha256 "X86_64_DARWIN_SHA256"
               end
             end
 
             on_linux do
               on_arm do
-                url "https://github.com/atrtde/todo-tree/releases/download/todo-tree-v#{version}/todo-tree-aarch64-unknown-linux-gnu.tar.gz"
+                url "https://github.com/alexandretrotel/todo-tree/releases/download/todo-tree-v#{version}/todo-tree-aarch64-unknown-linux-gnu.tar.gz"
                 sha256 "ARM64_LINUX_SHA256"
               end
 
               on_intel do
-                url "https://github.com/atrtde/todo-tree/releases/download/todo-tree-v#{version}/todo-tree-x86_64-unknown-linux-gnu.tar.gz"
+                url "https://github.com/alexandretrotel/todo-tree/releases/download/todo-tree-v#{version}/todo-tree-x86_64-unknown-linux-gnu.tar.gz"
                 sha256 "X86_64_LINUX_SHA256"
               end
             end
