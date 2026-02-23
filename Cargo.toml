@@ -4,10 +4,11 @@ members = ["core", "cli"]
 
 [workspace.package]
 edition = "2024"
-authors = ["atrtde"]
+authors = ["Alexandre Trotel"]
 license-file = "LICENSE"
-repository = "https://github.com/atrtde/todo-tree"
-homepage = "https://github.com/atrtde/todo-tree"
+docs = "https://docs.rs/todo-tree"
+repository = "https://github.com/alexandretrotel/todo-tree"
+homepage = "https://github.com/alexandretrotel/todo-tree"
 
 [profile.release]
 lto = true
