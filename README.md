@@ -27,7 +27,7 @@ cargo install todo-tree
 
 ```bash
 # Clone the repository
-git clone https://github.com/atrtde/todo-tree.git
+git clone https://github.com/alexandretrotel/todo-tree.git
 cd todo-tree
 
 # Build and install
@@ -37,7 +37,7 @@ cargo install --path .
 ### Using Homebrew (macOS/Linux)
 
 ```bash
-brew tap atrtde/todo-tree
+brew tap alexandretrotel/todo-tree
 brew install todo-tree
 ```
 
@@ -47,14 +47,14 @@ brew install todo-tree
 
 ```bash
 # runs the default todo-tree command
-nix run github:atrtde/todo-tree
+nix run github:alexandretrotel/todo-tree
 
 # create a shell with the command available (with nix-output-monitor)
-nom shell github:atrtde/todo-tree
+nom shell github:alexandretrotel/todo-tree
 tt tags
 
 # or, just normal nix
-nix shell github:atrtde/todo-tree
+nix shell github:alexandretrotel/todo-tree
 tt scan ~/projects/todo-tree --tags FIXME
 ```
 
@@ -67,7 +67,7 @@ tt scan ~/projects/todo-tree --tags FIXME
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    todo-tree.url = "github:atrtde/todo-tree";
+    todo-tree.url = "github:alexandretrotel/todo-tree";
   };
 
   outputs = { self, nixpkgs, todo-tree, ... }: {
@@ -236,7 +236,7 @@ Colors are automatically enabled when outputting to a terminal. Use `--no-color`
 
 ## Related Projects
 
-### [todo-tree-action](https://github.com/atrtde/todo-tree-action)
+### [todo-tree-action](https://github.com/alexandretrotel/todo-tree-action)
 
 A GitHub Action that automatically scans your pull requests for TODO comments and posts a summary as a PR comment. Features include:
 - Scan only changed files in PRs
