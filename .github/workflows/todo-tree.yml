@@ -1,4 +1,4 @@
-name: Todo Tree Action
+name: Todo Tree
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   todo-tree-action:
-    name: Todo Tree Action
+    name: Todo Tree
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -18,11 +18,8 @@ jobs:
           submodules: true
           fetch-depth: 0
 
-      - name: Run Todo Tree Action
-        uses: atrtde/todo-tree-action@v1.0.2
+      - name: Run Todo Tree
+        uses: alexandretrotel/todo-tree-action@v1.0.2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           changed-only: true
-          show-annotations: true
-          post-comment: true
-          comment-header: "## TODO Report"

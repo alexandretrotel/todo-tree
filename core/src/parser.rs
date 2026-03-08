@@ -12,6 +12,7 @@
 /// - `(.*)`                      - The message
 ///
 /// Supported comment syntaxes:
+/// ```text
 ///   //    - C, C++, Java, JavaScript, TypeScript, Rust, Go, Swift, Kotlin
 ///   #     - Python, Ruby, Shell, YAML, TOML
 ///   /*    - C-style block comments
@@ -23,6 +24,7 @@
 ///   """   - Python docstrings
 ///   '''   - Python docstrings
 ///   REM   - Batch files
+/// ```
 ///
 /// Note: `::` was removed from default comment markers to prevent false positives
 /// in Rust, C++, and other languages where `::` is used as a scope resolution operator
