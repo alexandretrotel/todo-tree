@@ -54,7 +54,7 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          python - <<'PY'
+          python3 - <<'PY'
           import json, subprocess, sys
 
           meta = json.loads(subprocess.check_output([
@@ -81,7 +81,7 @@ jobs:
       - name: Run tests (release mode)
         shell: bash
         run: |
-          python - <<'PY'
+          python3 - <<'PY'
           import json, subprocess, sys
 
           meta = json.loads(subprocess.check_output([
