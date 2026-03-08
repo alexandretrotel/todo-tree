@@ -52,58 +52,10 @@ jobs:
         run: cargo build --verbose
 
       - name: Run tests
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import json, subprocess, sys
-
-          meta = json.loads(subprocess.check_output([
-              "cargo", "metadata", "--no-deps", "--format-version", "1"
-          ]))
-
-          testable = False
-          for pkg in meta["packages"]:
-              for target in pkg["targets"]:
-                  kinds = set(target["kind"])
-                  if kinds & {"lib", "bin", "proc-macro"}:
-                      testable = True
-                      break
-              if testable:
-                  break
-
-          if testable:
-              sys.exit(subprocess.call(["cargo", "test", "--verbose"]))
-          else:
-              print("No testable Cargo targets found, skipping tests.")
-              sys.exit(0)
-          PY
+        run: cargo test --verbose
 
       - name: Run tests (release mode)
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import json, subprocess, sys
-
-          meta = json.loads(subprocess.check_output([
-              "cargo", "metadata", "--no-deps", "--format-version", "1"
-          ]))
-
-          testable = False
-          for pkg in meta["packages"]:
-              for target in pkg["targets"]:
-                  kinds = set(target["kind"])
-                  if kinds & {"lib", "bin", "proc-macro"}:
-                      testable = True
-                      break
-              if testable:
-                  break
-
-          if testable:
-              sys.exit(subprocess.call(["cargo", "test", "--release", "--verbose"]))
-          else:
-              print("No testable Cargo targets found, skipping release tests.")
-              sys.exit(0)
-          PY
+        run: cargo test --release --verbose
 
   clippy:
     name: Clippy
