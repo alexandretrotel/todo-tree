@@ -330,6 +330,32 @@ ignore
     }
 
     #[test]
+    fn require_colon_false_rejects_false_positives() {
+        let parser = TodoParser::with_options(&tags(), false, false, None);
+
+        assert!(
+            parser.parse_line("// TODO.complete()", 4).is_none(),
+            "tag followed by '.' must not match"
+        );
+        assert!(
+            parser.parse_line("// todoList", 5).is_none(),
+            "tag embedded in a word must not match"
+        );
+    }
+
+    #[test]
+    fn require_colon_false_documents_double_colon_behavior() {
+        let parser = TodoParser::with_options(&tags(), false, false, None);
+
+        let item = parser
+            .parse_line("* TODO::module::fn", 6)
+            .expect("double-colon form should match current default regex behavior");
+
+        assert_eq!(item.tag, "TODO");
+        assert_eq!(item.message, ":module::fn");
+    }
+
+    #[test]
     fn custom_regex_can_support_non_default_syntax() {
         let tags = vec!["TODO".to_string(), "FIXME".to_string()];
         let parser = TodoParser::with_options(
