@@ -43,7 +43,7 @@ impl TodoParser {
 
         let mut base_pattern = custom_regex.unwrap_or(DEFAULT_REGEX).to_string();
         if custom_regex.is_none() && !require_colon {
-            base_pattern = base_pattern.replace(":(.*)", "[:\\s]+(.*)");
+            base_pattern = base_pattern.replace(":(.*)", r"(?:(?::|\s+)(.*))?");
         }
 
         let pattern_string = base_pattern.replace("$TAGS", &tags_alternation);
