@@ -3,6 +3,10 @@ name: CI
 on:
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -12,7 +16,7 @@ env:
 
 jobs:
   test:
-    name: Test
+    name: Test (${{ matrix.os }}, ${{ matrix.rust }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -20,7 +24,6 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         rust: [stable, beta]
         exclude:
-          # Only test beta on ubuntu to save CI time
           - os: macos-latest
             rust: beta
           - os: windows-latest
@@ -37,25 +40,17 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
 
-      - name: Cache cargo registry
-        uses: actions/cache@v5
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-${{ matrix.rust }}-
-
-      - name: Build
-        run: cargo build --verbose
+          key: ${{ matrix.os }}-${{ matrix.rust }}
 
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test --locked --verbose
 
       - name: Run tests (release mode)
-        run: cargo test --release --verbose
+        if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable'
+        run: cargo test --locked --release --verbose
 
   clippy:
     name: Clippy
@@ -72,19 +67,11 @@ jobs:
           toolchain: stable
           components: clippy
 
-      - name: Cache cargo registry
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-clippy-
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
 
       - name: Run Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
 
   fmt:
     name: Formatting
@@ -118,21 +105,13 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Cache cargo registry
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-build-
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
 
       - name: Build release binaries
-        run: cargo build --release --verbose
+        run: cargo build --locked --release --verbose
 
       - name: Verify binaries exist
         run: |
-          ls -la target/release/todo-tree
-          ls -la target/release/tt
+          test -f target/release/todo-tree
+          test -f target/release/tt
