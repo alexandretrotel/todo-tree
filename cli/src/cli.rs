@@ -44,6 +44,8 @@ pub enum Commands {
     Tags(TagsArgs),
     #[command(about = "Create a default configuration file")]
     Init(InitArgs),
+    #[command(about = "Manage GitHub Actions workflow templates")]
+    Workflow(WorkflowArgs),
     #[command(about = "Show summary stats for TODO matches")]
     Stats(StatsArgs),
 }
@@ -175,6 +177,37 @@ pub struct InitArgs {
     pub format: ConfigFormat,
     #[arg(short, long, help = "Overwrite the config file if it exists")]
     pub force: bool,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct WorkflowArgs {
+    #[command(subcommand)]
+    pub command: WorkflowCommands,
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum WorkflowCommands {
+    #[command(about = "Create a GitHub Actions workflow for todo-tree-action")]
+    Init(WorkflowInitArgs),
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct WorkflowInitArgs {
+    #[arg(short, long, help = "Overwrite the workflow file if it exists")]
+    pub force: bool,
+
+    #[arg(
+        long,
+        value_hint = ValueHint::FilePath,
+        help = "Path to the workflow file"
+    )]
+    pub path: Option<PathBuf>,
+
+    #[arg(
+        long,
+        help = "GitHub Action reference to use in the generated workflow"
+    )]
+    pub action: Option<String>,
 }
 
 #[derive(Args, Debug, Clone)]

@@ -113,6 +113,9 @@ tt tags
 
 # Show statistics
 tt stats
+
+# Create a GitHub Actions workflow
+tt workflow init
 ```
 
 ## Configuration
@@ -216,6 +219,24 @@ The strict defaults (uppercase + colon required) significantly reduce false posi
 These defaults align with most coding conventions and help you find **intentional TODO comments**, not accidental matches.
 
 ## Terminal Support
+
+## GitHub Actions
+
+Generate a workflow file at `.github/workflows/todo-tree.yml`:
+
+```bash
+tt workflow init
+```
+
+This creates a pull request workflow that checks out the repository and runs `alexandretrotel/todo-tree-action@v1.0.3` by default.
+
+Use `--force` to overwrite an existing workflow, `--path` to write the template elsewhere, or `--action` to override the generated action ref:
+
+```bash
+tt workflow init --force
+tt workflow init --path .github/workflows/custom-todo-tree.yml
+tt workflow init --action alexandretrotel/todo-tree-action@main
+```
 
 ### Clickable Links
 
