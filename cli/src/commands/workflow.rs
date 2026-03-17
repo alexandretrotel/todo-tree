@@ -48,6 +48,9 @@ fn validate_action_ref(action: &str) -> Result<()> {
         || repo_parts.next().is_some()
         || action.contains('\n')
         || action.contains('\r')
+        || action.contains(' ')
+        || action.contains('\t')
+        || reference.contains('@')
     {
         anyhow::bail!(
             "Invalid action reference {:?}. Expected format: owner/repo@ref",
