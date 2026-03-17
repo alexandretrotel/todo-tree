@@ -50,9 +50,9 @@ jobs:
       - name: Scan TODOs
         uses: {action}
         with:
-            github-token: ${{{{ secrets.GITHUB_TOKEN }}}}
-            changed-only: true
-            new-only: true
+          github-token: ${{{{ secrets.GITHUB_TOKEN }}}}
+          changed-only: true
+          new-only: true
 "#
     )
 }
