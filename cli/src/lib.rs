@@ -9,7 +9,7 @@ pub mod utils;
 use anyhow::Result;
 use clap::Parser;
 use cli::{Cli, Commands};
-use commands::{init, list, scan, stats, tags as cli_tags};
+use commands::{init, list, scan, stats, tags as cli_tags, workflow};
 pub use todo_tree_core::{Priority, ScanResult, ScanSummary, TodoItem};
 
 pub fn run() -> Result<()> {
@@ -24,6 +24,7 @@ pub fn run() -> Result<()> {
         Commands::List(args) => list::run(args, &cli.global),
         Commands::Tags(args) => cli_tags::run(args, &cli.global),
         Commands::Init(args) => init::run(args),
+        Commands::Workflow(args) => workflow::run(args),
         Commands::Stats(args) => stats::run(args, &cli.global),
     }
 }
