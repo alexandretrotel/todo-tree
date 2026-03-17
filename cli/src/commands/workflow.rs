@@ -17,6 +17,7 @@ fn init(args: WorkflowInitArgs) -> Result<()> {
         .path
         .unwrap_or_else(|| PathBuf::from(DEFAULT_WORKFLOW_PATH));
 
+    validate_action_ref(&action)?;
     write_workflow_template(&path, args.force, &action)?;
 
     println!("Created workflow file: {}", path.display());
@@ -27,6 +28,34 @@ fn init(args: WorkflowInitArgs) -> Result<()> {
 
 fn default_action_ref() -> String {
     format!("alexandretrotel/todo-tree-action@{ACTION_VERSION}")
+}
+
+fn validate_action_ref(action: &str) -> Result<()> {
+    let Some((repo, reference)) = action.split_once('@') else {
+        anyhow::bail!(
+            "Invalid action reference {:?}. Expected format: owner/repo@ref",
+            action
+        );
+    };
+
+    let mut repo_parts = repo.split('/');
+    let owner = repo_parts.next().unwrap_or_default();
+    let name = repo_parts.next().unwrap_or_default();
+
+    if owner.is_empty()
+        || name.is_empty()
+        || reference.is_empty()
+        || repo_parts.next().is_some()
+        || action.contains('\n')
+        || action.contains('\r')
+    {
+        anyhow::bail!(
+            "Invalid action reference {:?}. Expected format: owner/repo@ref",
+            action
+        );
+    }
+
+    Ok(())
 }
 
 fn workflow_template(action: &str) -> String {
