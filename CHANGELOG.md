@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added `workflow init` command to scaffold `.github/workflows/todo-tree.yml`.
-- Generated workflow template now pins `alexandretrotel/todo-tree-action@v1.0.3`.
+- Generated workflow template now pins `atrtde/todo-tree-action@v1.0.3`.
 
 ### Documentation
 - Documented GitHub Actions setup with `tt workflow init`.
