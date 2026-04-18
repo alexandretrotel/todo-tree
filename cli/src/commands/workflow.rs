@@ -27,7 +27,7 @@ fn init(args: WorkflowInitArgs) -> Result<()> {
 }
 
 fn default_action_ref() -> String {
-    format!("alexandretrotel/todo-tree-action@{ACTION_VERSION}")
+    format!("atrtde/todo-tree-action@{ACTION_VERSION}")
 }
 
 fn validate_action_ref(action: &str) -> Result<()> {
