@@ -218,8 +218,6 @@ The strict defaults (uppercase + colon required) significantly reduce false posi
 
 These defaults align with most coding conventions and help you find **intentional TODO comments**, not accidental matches.
 
-## Terminal Support
-
 ## GitHub Actions
 
 Generate a workflow file at `.github/workflows/todo-tree.yml`:
@@ -237,6 +235,8 @@ tt workflow init --force
 tt workflow init --path .github/workflows/custom-todo-tree.yml
 tt workflow init --action atrtde/todo-tree-action@main
 ```
+
+## Terminal Support
 
 ### Clickable Links
 
